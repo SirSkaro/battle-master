@@ -1,3 +1,6 @@
-[auth]
+[showdown_auth]
 username=
 password=
+
+[opponent]
+username=
