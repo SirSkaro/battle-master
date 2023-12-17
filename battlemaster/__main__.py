@@ -6,9 +6,9 @@ from poke_env.player import Player
 
 from .containers import Container
 
+
 @inject
 async def main(player: Player = Provide[Container.player], opponent: str = Provide[Container.opponent]):
-    logging.getLogger(player.username).handlers.clear()
     logger = logging.getLogger(f"{__name__}")
     logger.info(f"Logged into Showdown as {player.username}")
 
