@@ -1,6 +1,8 @@
-[showdown_auth]
+[showdown]
 username=
 password=
+server_url=
+auth_url=
 
 [opponent]
 username=

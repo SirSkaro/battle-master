@@ -1,17 +1,18 @@
 import logging.config
 
 from dependency_injector import containers, providers
-from poke_env import AccountConfiguration, LocalhostServerConfiguration
+from poke_env import AccountConfiguration, ServerConfiguration
 from poke_env.player import RandomPlayer, Player
 
 
 def _configure_player(config: providers.Configuration) -> providers.Singleton[Player]:
-    auth = config.showdown_auth
-    account_config = AccountConfiguration(auth.username(), auth.password())
+    showdown_settings = config.showdown
+    account_config = AccountConfiguration(showdown_settings.username(), showdown_settings.password())
+    server_config = ServerConfiguration(showdown_settings.server_url(), showdown_settings.auth_url())
     return providers.Singleton(
         RandomPlayer,
         account_configuration=account_config,
-        server_configuration=LocalhostServerConfiguration
+        server_configuration=server_config
     )
 
 
