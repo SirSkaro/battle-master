@@ -12,7 +12,7 @@ async def main(player: Player = Provide[Container.player], opponent: str = Provi
     logger = logging.getLogger(f"{__name__}")
     logger.info(f"Logged into Showdown as {player.username}")
 
-    logger.info(f"Challening {opponent}")
+    logger.info(f"Challenging {opponent}")
     await player.send_challenges(opponent, n_challenges=1)
 
 

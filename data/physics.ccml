@@ -1,0 +1,3 @@
+store nacs/physics_store:
+    chunk firepunch:
+        base_power 75 l=0 w=1
