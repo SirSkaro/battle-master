@@ -4,6 +4,9 @@ from dependency_injector import containers, providers
 from poke_env import AccountConfiguration, ServerConfiguration
 from poke_env.player import RandomPlayer, Player
 
+from .mind import create_agent
+from .agents import BattleMasterPlayer
+
 
 class PlayerSingleton(providers.Provider):
 
@@ -43,11 +46,19 @@ def _configure_player(config: providers.Configuration) -> PlayerSingleton:
     showdown_settings = config.showdown
     account_config = AccountConfiguration(showdown_settings.username(), showdown_settings.password())
     server_config = ServerConfiguration(showdown_settings.server_url(), showdown_settings.auth_url())
+    mind, stimulus = _configure_mind()
     return PlayerSingleton(
-        RandomPlayer,
+        BattleMasterPlayer,
+        mind=mind,
+        stimulus=stimulus,
         account_configuration=account_config,
         server_configuration=server_config
     )
+
+
+def _configure_mind():
+    mind, stimulus = create_agent()
+    return providers.Object(mind), providers.Object(stimulus)
 
 
 class Container(containers.DeclarativeContainer):
@@ -58,5 +69,3 @@ class Container(containers.DeclarativeContainer):
 
     player = _configure_player(config)
     opponent = providers.Object(config.opponent.username())
-
-
