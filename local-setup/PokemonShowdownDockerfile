@@ -1,0 +1,19 @@
+FROM node:latest
+
+RUN apt update
+RUN apt-get install git nodejs npm curl vim -y
+
+# Cloning showdown
+WORKDIR /root/
+RUN git clone https://github.com/smogon/pokemon-showdown.git
+WORKDIR /root/pokemon-showdown
+
+# Setting up config
+RUN cp -r config/config-example.js config/config.js
+
+
+# Setup
+RUN npm install
+
+EXPOSE 8000
+CMD [ "node", "pokemon-showdown", "start" , "--no-security"]
