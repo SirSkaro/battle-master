@@ -46,7 +46,7 @@ auth_url=https://play.pokemonshowdown.com/action.php?
 [opponent]
 username=Probably your alt
 ```
-## Running the Agent
+### Running the Agent
 ```python
 python -m battlemaster
 ```
