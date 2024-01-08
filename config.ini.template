@@ -4,5 +4,5 @@ password=
 server_url=
 auth_url=
 
-[opponent]
-username=
+[agent]
+max_concurrent_battles=10

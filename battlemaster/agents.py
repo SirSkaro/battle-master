@@ -11,10 +11,8 @@ from pyClarion import Structure, Construct, subsystem, flow_tt
 
 class BattleMasterPlayer(Player):
 
-    def __init__(self, mind: Structure, stimulus: Construct,
-                 account_configuration: Optional[AccountConfiguration] = None,
-                 server_configuration: Optional[ServerConfiguration] = None):
-        super().__init__(account_configuration=account_configuration, server_configuration=server_configuration)
+    def __init__(self, mind: Structure, stimulus: Construct, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.mind = mind
         self.stimulus = stimulus
 

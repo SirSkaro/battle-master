@@ -42,17 +42,32 @@ class PlayerSingleton(providers.Provider):
         return player
 
 
-def _configure_player(config: providers.Configuration) -> PlayerSingleton:
+def _get_showdown_config(config: providers.Configuration):
     showdown_settings = config.showdown
     account_config = AccountConfiguration(showdown_settings.username(), showdown_settings.password())
     server_config = ServerConfiguration(showdown_settings.server_url(), showdown_settings.auth_url())
+    return account_config, server_config
+
+
+def _configure_player(config: providers.Configuration) -> PlayerSingleton:
+    account_config, server_config = _get_showdown_config(config)
     mind, stimulus = _configure_mind()
     return PlayerSingleton(
         BattleMasterPlayer,
         mind=mind,
         stimulus=stimulus,
         account_configuration=account_config,
-        server_configuration=server_config
+        server_configuration=server_config,
+        max_concurrent_battles=config.agent.max_concurrent_battles.as_int()()
+    )
+
+
+def _configure_benchmark_player(config: providers.Configuration) -> providers.Singleton[Player]:
+    _, server_config = _get_showdown_config(config)
+    return providers.Singleton(
+        RandomPlayer,
+        server_configuration=server_config,
+        max_concurrent_battles=config.agent.max_concurrent_battles.as_int()()
     )
 
 
@@ -68,4 +83,4 @@ class Container(containers.DeclarativeContainer):
     logging = providers.Resource(logging.config.fileConfig, fname="logging.ini")
 
     player = _configure_player(config)
-    opponent = providers.Object(config.opponent.username())
+    benchmark_opponent = _configure_benchmark_player(config)

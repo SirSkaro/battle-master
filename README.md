@@ -43,12 +43,30 @@ password=Bar
 server_url=sim.smogon.com:8000   # or localhost:8000 if running locally
 auth_url=https://play.pokemonshowdown.com/action.php?
 
-[opponent]
-username=Probably your alt
+[agent]
+max_concurrent_battles=10
 ```
 ## Running the Agent
-```python
-python -m battlemaster
+Battle Master can be ran in two different modes: `challenge` and `benchmark`. 
+For additional information, use the `-h` (help) flag.
+```shell
+python -m battlemaster -h
+```
+
+### Challenge
+For `challenge` mode, you must specify the username of the opponent you want Battle Master to challenge upon start up. 
+The program will block until the battle terminates.
+```shell
+python -m battlemaster challenge "Sir Skaro"
+python -m battlemaster challenge -h #for additional information
+```
+
+### Benchmark
+`benchmark` mode initiates  the specified number of battles against a baseline agent for evaluation purposes. This baseline agent always picks
+random actions. 
+```shell
+python -m battlemaster benchmark 100
+python -m battlemaster benchmark -h #for additional information
 ```
 
 ## Development/Local Setup
@@ -56,13 +74,13 @@ If you want a completely local setup (such as for development purposes), you can
 
 ### Docker
 Included in the top-level `local-setup` directory is a Dockerfile to create an image of a Pokemon Showdown with security disabled (including automated chat moderation daemons). It runs on the default port 8000.
-```bash
+```shell
 docker build -t pokemon-showdown -f local-setup/PokemonShowdownDockerfile .
 docker run -p 8000:8000 -d pokemon-showdown:latest
 ```
 
 Alternatively you can pull the source code for Pokemon Showdown and manually run it. This will require an installation of Node.js.
-```bash
+```shell
 git clone https://github.com/smogon/pokemon-showdown.git
 cd pokemon-showdown
 npm install
@@ -73,9 +91,7 @@ node pokemon-showdown start --no-security
 Pokemon Showdown will be available at `http://localhost:8000`. 
 
 ## Contributing
-
 This project is currently for scholastic credit. As such, not contributions will be accepted until after the class finishes (May 2024).
 
 ## License
-
 [MIT](https://choosealicense.com/licenses/mit/)
