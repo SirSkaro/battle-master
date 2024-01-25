@@ -1,11 +1,12 @@
 import logging.config
+from typing import Type
 
 from dependency_injector import containers, providers
 from poke_env import AccountConfiguration, ServerConfiguration
 from poke_env.player import RandomPlayer, Player
 
 from .mind import create_agent
-from .agents import BattleMasterPlayer
+from .agents import BattleMasterPlayer, MaxDamagePlayer
 
 
 class PlayerSingleton(providers.Provider):
@@ -62,10 +63,10 @@ def _configure_player(config: providers.Configuration) -> PlayerSingleton:
     )
 
 
-def _configure_benchmark_player(config: providers.Configuration) -> PlayerSingleton:
+def _configure_benchmark_player(config: providers.Configuration, provides: Type) -> PlayerSingleton:
     _, server_config = _get_showdown_config(config)
     return PlayerSingleton(
-        RandomPlayer,
+        provides,
         server_configuration=server_config,
         max_concurrent_battles=config.agent.max_concurrent_battles.as_int()()
     )
@@ -83,4 +84,7 @@ class Container(containers.DeclarativeContainer):
     logging = providers.Resource(logging.config.fileConfig, fname="logging.ini")
 
     player = _configure_player(config)
-    benchmark_opponent = _configure_benchmark_player(config)
+    benchmark_agents = providers.Dict(
+        random=_configure_benchmark_player(config, RandomPlayer),
+        max_damage=_configure_benchmark_player(config, MaxDamagePlayer)
+    )

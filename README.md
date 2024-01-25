@@ -62,10 +62,10 @@ python -m battlemaster challenge -h #for additional information
 ```
 
 ### Benchmark
-`benchmark` mode initiates  the specified number of battles against a baseline agent for evaluation purposes. This baseline agent always picks
-random actions. 
+`benchmark` mode initiates the specified number of battles against a named baseline agent for evaluation purposes. This baseline agent always picks
+random actions.
 ```shell
-python -m battlemaster benchmark 100
+python -m battlemaster benchmark random 100
 python -m battlemaster benchmark -h #for additional information
 ```
 
