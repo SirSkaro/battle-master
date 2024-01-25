@@ -62,9 +62,9 @@ def _configure_player(config: providers.Configuration) -> PlayerSingleton:
     )
 
 
-def _configure_benchmark_player(config: providers.Configuration) -> providers.Singleton[Player]:
+def _configure_benchmark_player(config: providers.Configuration) -> PlayerSingleton:
     _, server_config = _get_showdown_config(config)
-    return providers.Singleton(
+    return PlayerSingleton(
         RandomPlayer,
         server_configuration=server_config,
         max_concurrent_battles=config.agent.max_concurrent_battles.as_int()()
