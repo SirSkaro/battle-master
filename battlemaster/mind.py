@@ -1,6 +1,7 @@
 import pyClarion as cl
 from pyClarion import chunk, rule, feature, buffer, subsystem, Construct, chunks, features
 
+
 def _define_type_chunks(chunk_database: cl.Chunks, rule_database: cl.Rules):
     types = ['normal', 'fighting', 'flying', 'poison', 'ground', 'rock', 'bug', 'ghost', 'steel', 'fire', 'water',
              'grass', 'electric', 'psychic', 'ice', 'dragon', 'dark', 'fairy']
