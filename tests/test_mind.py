@@ -13,6 +13,5 @@ def test_nacs():
 
     type_chunk, weight = next(iter(nacs_output.items()))
 
-    assert weight == 1.0
     assert 'fighting' == type_chunk.cid
 

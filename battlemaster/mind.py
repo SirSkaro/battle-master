@@ -66,8 +66,8 @@ def create_agent():
             Construct(name=features("main"), process=cl.MaxNodes(sources=[cl.flow_tb("main")]))
             Construct(name=cl.flow_tt("associations"), process=cl.AssociativeRules(source=chunks("in"), rules=nacs.assets.rdb))
             Construct(name=cl.flow_bt("main"), process=cl.BottomUp(source=features("main"), chunks=nacs.assets.cdb))
-            Construct(name=chunks("out"), process=cl.MaxNodes(sources=[chunks("in"), cl.flow_bt("main"), cl.flow_tt("associations")]))
-            Construct(name=cl.terminus("main"),process=cl.Filtered(base=cl.BoltzmannSelector(source=chunks("out"), temperature=.1), controller=buffer("stimulus")))
+            Construct(name=chunks("out"), process=cl.MaxNodes(sources=[chunks("in"), cl.flow_tt("associations")]))
+            Construct(name=cl.terminus("main"), process=cl.Filtered(base=cl.ThresholdSelector(source=chunks("out"), threshold=0.1), controller=buffer("stimulus")))
 
     return btlMaster, stimulus
 
