@@ -67,7 +67,7 @@ def create_agent() -> Tuple[cl.Structure, Construct]:
             Construct(name=cl.flow_tb("main"), process=cl.TopDown(source=chunks("in"), chunks=nacs.assets.cdb))
             Construct(name=cl.flow_tt("associations"), process=cl.AssociativeRules(source=chunks("in"), rules=nacs.assets.rdb))
             Construct(name=chunks("out"), process=cl.MaxNodes(sources=[cl.flow_tt("associations")]))
-            Construct(name=cl.terminus("main"), process=cl.Filtered(base=cl.ThresholdSelector(source=chunks("out"), threshold=0.1), controller=buffer("stimulus")))
+            Construct(name=cl.terminus("main"), process=cl.ThresholdSelector(source=chunks("out"), threshold=0.1))
 
     return btlMaster, stimulus
 
