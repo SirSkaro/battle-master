@@ -1,3 +1,5 @@
+from typing import Tuple
+
 import pyClarion as cl
 from pyClarion import chunk, rule, feature, buffer, subsystem, Construct, chunks, features
 
@@ -45,7 +47,7 @@ def _define_type_chunks(chunk_database: cl.Chunks, rule_database: cl.Rules):
         rule_database.define(attack_rule, attack_conclusion, *attack_conditions)
 
 
-def create_agent():
+def create_agent() -> Tuple[cl.Structure, Construct]:
     chunk_database = cl.Chunks()
     rule_database = cl.Rules()
 
