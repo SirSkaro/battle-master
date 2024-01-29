@@ -31,12 +31,16 @@ def nacs_terminus(nacs: cl.Structure) -> cl.Construct:
     return nacs[cl.terminus("main")]
 
 
-def test_nacs(agent: cl.Structure, stimulus: cl.Construct, nacs_terminus: cl.Construct):
-    stimulus.process.input({cl.chunk('normal'): 1.})
+@pytest.mark.parametrize("defending_types, expected_super_effective_types", [(["normal"], ["fighting"])])
+def test_super_effective_association(defending_types, expected_super_effective_types, agent: cl.Structure, stimulus: cl.Construct, nacs_terminus: cl.Construct):
+    presented_types = {cl.chunk(defending_type): 1. for defending_type in defending_types}
+
+    stimulus.process.input(presented_types)
     agent.step()
-
     nacs_output = nacs_terminus.output
-    type_chunk, weight = next(iter(nacs_output.items()))
 
-    assert 'fighting' == type_chunk.cid
+    super_effective_types = [type_chunk.cid for type_chunk, weight in iter(nacs_output.items())]
+    assert sorted(expected_super_effective_types) == sorted(super_effective_types)
+
+
 
