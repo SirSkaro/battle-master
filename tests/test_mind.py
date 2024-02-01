@@ -1,6 +1,6 @@
-import pytest
 from typing import Tuple
 
+import pytest
 import pyClarion as cl
 
 from battlemaster import mind
