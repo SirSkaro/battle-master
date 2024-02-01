@@ -1,7 +1,9 @@
 from typing import Tuple
+import re
 
 import pyClarion as cl
 from pyClarion import chunk, rule, feature, buffer, subsystem, Construct, chunks, features
+from poke_env import data as pokemon_database
 
 
 def _define_type_chunks(chunk_database: cl.Chunks, rule_database: cl.Rules):
@@ -32,7 +34,7 @@ def _define_type_chunks(chunk_database: cl.Chunks, rule_database: cl.Rules):
     ]
 
     for type in types:
-        chunk_database.define(chunk(type), feature(type), feature('type'))
+        chunk_database.define(chunk(type), feature('type', type))
 
     for attacker_index, attacker_type in enumerate(types):
         attack_conclusion = chunk(attacker_type)
@@ -47,11 +49,32 @@ def _define_type_chunks(chunk_database: cl.Chunks, rule_database: cl.Rules):
         rule_database.define(attack_rule, attack_conclusion, *attack_conditions)
 
 
+_camel_case_pattern = re.compile(r'(?<!^)(?=[A-Z])')
+def _to_snake_case(camel_case:str) -> str:
+    return _camel_case_pattern.sub('_', camel_case).lower()
+
+
+def _define_move_chunks(chunk_database: cl.Chunks):
+    generation_database = pokemon_database.gen_data.GenData(9)
+    all_moves = generation_database.moves
+    for move_data in all_moves.values():
+        if 'isZ' in move_data:
+            continue
+        chunk_database.define(chunk(_to_snake_case(move_data['name'])),
+                              feature('accuracy', 100 if move_data['accuracy'] == True else move_data['accuracy']),
+                              feature('base_power', move_data['basePower']),
+                              feature('category', _to_snake_case(move_data['category'])),
+                              feature('pp', move_data['pp']),
+                              feature('priority', move_data['priority']),
+                              feature('type', _to_snake_case(move_data['type'])))
+
+
 def create_agent() -> Tuple[cl.Structure, Construct]:
     chunk_database = cl.Chunks()
     rule_database = cl.Rules()
 
     _define_type_chunks(chunk_database, rule_database)
+    _define_move_chunks(chunk_database)
 
     with cl.Structure(name=cl.agent('btlMaster')) as btlMaster:
         stimulus = Construct(name=buffer("stimulus"), process=cl.Stimulus())
@@ -68,6 +91,7 @@ def create_agent() -> Tuple[cl.Structure, Construct]:
             Construct(name=cl.flow_tt("associations"), process=cl.AssociativeRules(source=chunks("in"), rules=nacs.assets.rdb))
             Construct(name=chunks("out"), process=cl.MaxNodes(sources=[cl.flow_tt("associations")]))
             Construct(name=cl.terminus("main"), process=cl.ThresholdSelector(source=chunks("out"), threshold=0.1))
+
 
     return btlMaster, stimulus
 
