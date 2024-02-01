@@ -61,6 +61,7 @@ def _define_move_chunks(chunk_database: cl.Chunks):
         if 'isZ' in move_data:
             continue
         chunk_database.define(chunk(_to_snake_case(move_data['name'])),
+                              feature('move'),
                               feature('accuracy', 100 if move_data['accuracy'] == True else move_data['accuracy']),
                               feature('base_power', move_data['basePower']),
                               feature('category', _to_snake_case(move_data['category'])),
