@@ -90,25 +90,29 @@ def _define_pokemon_chunks(chunk_database: cl.Chunks):
 
 
 def create_agent() -> Tuple[cl.Structure, Construct]:
-    chunk_database = cl.Chunks()
+    type_chunks = cl.Chunks()
+    move_chunks = cl.Chunks()
+    pokemon_chunks = cl.Chunks()
     rule_database = cl.Rules()
 
-    _define_type_chunks(chunk_database, rule_database)
-    _define_move_chunks(chunk_database)
-    _define_pokemon_chunks(chunk_database)
+    _define_type_chunks(type_chunks, rule_database)
+    _define_move_chunks(move_chunks)
+    _define_pokemon_chunks(pokemon_chunks)
 
     with cl.Structure(name=cl.agent('btlMaster')) as btlMaster:
         stimulus = Construct(name=buffer("stimulus"), process=cl.Stimulus())
         nacs = cl.Structure(name=subsystem("nacs"),
             assets=cl.Assets(
-                cdb=chunk_database,
+                type_chunks=type_chunks,
+                move_chunks=type_chunks,
+                pokemon_chunks=pokemon_chunks,
                 rdb=rule_database
             )
         )
 
         with nacs:
             Construct(name=cl.chunks("in"), process=cl.MaxNodes(sources=[buffer("stimulus")]))
-            Construct(name=cl.flow_tb("main"), process=cl.TopDown(source=chunks("in"), chunks=nacs.assets.cdb))
+            Construct(name=cl.flow_tb("main"), process=cl.TopDown(source=chunks("in"), chunks=nacs.assets.type_chunks))
             Construct(name=cl.flow_tt("associations"), process=cl.AssociativeRules(source=chunks("in"), rules=nacs.assets.rdb))
             Construct(name=chunks("out"), process=cl.MaxNodes(sources=[cl.flow_tt("associations")]))
             Construct(name=cl.terminus("main"), process=cl.ThresholdSelector(source=chunks("out"), threshold=0.1))
