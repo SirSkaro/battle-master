@@ -52,16 +52,17 @@ def _define_type_chunks(chunk_database: cl.Chunks, rule_database: cl.Rules):
 _camel_case_pattern = re.compile(r'(?<!^)(?=[A-Z])')
 def _to_snake_case(camel_case: str) -> str:
     camel_case = camel_case.replace('-', '')
-    return _camel_case_pattern.sub('_', camel_case).lower()
+    camel_case = _camel_case_pattern.sub('_', camel_case).lower()
+    return camel_case.replace(' ', '_')
 
 
 def _define_move_chunks(chunk_database: cl.Chunks):
-    generation_database = pokemon_database.gen_data.GenData(9)
+    generation_database = pokemon_database.GenData(9)
     all_moves = generation_database.moves
-    for move_data in all_moves.values():
+    for move_key, move_data in all_moves.items():
         if 'isZ' in move_data:
             continue
-        chunk_database.define(chunk(_to_snake_case(move_data['name'].lower())),
+        chunk_database.define(chunk(move_key),
                               feature('move'),
                               feature('accuracy', 100 if move_data['accuracy'] == True else move_data['accuracy']),
                               feature('base_power', move_data['basePower']),
@@ -71,7 +72,7 @@ def _define_move_chunks(chunk_database: cl.Chunks):
 
 
 def _define_pokemon_chunks(chunk_database: cl.Chunks):
-    generation_database = pokemon_database.gen_data.GenData(9)
+    generation_database = pokemon_database.GenData(9)
     all_pokemon = generation_database.pokedex
     for pokemon in all_pokemon.values():
         typing = pokemon['types']
@@ -104,7 +105,7 @@ def create_agent() -> Tuple[cl.Structure, Construct]:
         nacs = cl.Structure(name=subsystem("nacs"),
             assets=cl.Assets(
                 type_chunks=type_chunks,
-                move_chunks=type_chunks,
+                move_chunks=move_chunks,
                 pokemon_chunks=pokemon_chunks,
                 rdb=rule_database
             )

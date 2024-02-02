@@ -1,7 +1,8 @@
-from typing import Tuple
+from typing import Tuple, List, Dict
 
 import pytest
 import pyClarion as cl
+from poke_env.data import GenData
 
 from battlemaster import mind
 
@@ -29,6 +30,51 @@ def nacs(agent: cl.Structure) -> cl.Structure:
 @pytest.fixture
 def nacs_terminus(nacs: cl.Structure) -> cl.Construct:
     return nacs[cl.terminus("main")]
+
+
+@pytest.fixture
+def type_chunks(nacs: cl.Structure) -> cl.Chunks:
+    return nacs.assets.type_chunks
+
+
+@pytest.fixture
+def move_chunks(nacs: cl.Structure) -> cl.Chunks:
+    return nacs.assets.move_chunks
+
+
+@pytest.fixture
+def pokemon_database() -> GenData:
+    return GenData(9)
+
+
+def test_type_chunks_populated(type_chunks: cl.Chunks):
+    types = ['normal', 'fighting', 'flying', 'poison', 'ground', 'rock', 'bug', 'ghost', 'steel', 'fire', 'water',
+             'grass', 'electric', 'psychic', 'ice', 'dragon', 'dark', 'fairy']
+    assert len(type_chunks) == len(types)
+    for type in types:
+        type_chunk = cl.chunk(type)
+        assert type_chunk in type_chunks
+        assert cl.feature('type', type) in type_chunks[type_chunk].features
+
+
+def test_move_chunks_populated(move_chunks: cl.Chunks, pokemon_database: GenData):
+    all_moves = pokemon_database.moves
+    z_moves = {key: value for key, value in all_moves.items() if 'isZ' in value}
+    expected_move_count = len(all_moves) - len(z_moves)
+    assert len(move_chunks) == expected_move_count
+
+
+@pytest.mark.parametrize("expected_chunks", [
+    ('airslash', [("type", "flying"), ("base_power", 75), ("priority", 0), ("accuracy", 95), ("category", "special")]),
+    ('amnesia', [("type", "psychic"), ("base_power", 0), ("priority", 0), ("accuracy", 100), ("category", "status")]),
+])
+def test_move_chunks_have_expected_features(expected_chunks: Tuple[str, List[Tuple[str, any]]], move_chunks: cl.Chunks):
+    chunk_name, features = expected_chunks
+    move_chunk = move_chunks[cl.chunk(chunk_name)]
+    assert len(move_chunk.features) == len(features) + 1
+    assert cl.feature('move') in move_chunk.features
+    for feature in features:
+        assert cl.feature(feature[0], feature[1]) in move_chunk.features
 
 
 @pytest.mark.parametrize("defending_types, expected_super_effective_types", [
