@@ -44,6 +44,7 @@ class TestBattleMasterPlayer:
     @staticmethod
     def _create_move(type_name: str) -> Move:
         move = Mock(spec=Move)
+        move.id = f'Some {type_name} move'
         pokemon_type = Mock(spec=PokemonType)
         move.type = pokemon_type
         pokemon_type.name = type_name

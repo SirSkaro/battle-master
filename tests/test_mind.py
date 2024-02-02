@@ -43,6 +43,11 @@ def move_chunks(nacs: cl.Structure) -> cl.Chunks:
 
 
 @pytest.fixture
+def pokemon_chunks(nacs: cl.Structure) -> cl.Chunks:
+    return nacs.assets.pokemon_chunks
+
+
+@pytest.fixture
 def pokemon_database() -> GenData:
     return GenData(9)
 
@@ -75,6 +80,26 @@ def test_move_chunks_have_expected_features(expected_chunks: Tuple[str, List[Tup
     assert cl.feature('move') in move_chunk.features
     for feature in features:
         assert cl.feature(feature[0], feature[1]) in move_chunk.features
+
+
+def test_pokemon_chunks_populated(pokemon_chunks: cl.Chunks, pokemon_database: GenData):
+    all_pokemon = pokemon_database.pokedex
+    assert len(pokemon_chunks) == len(all_pokemon)
+
+
+@pytest.mark.parametrize("expected_chunks", [
+    ('abra', [("type", "psychic"), ("type", None), ("hp", 25), ("attack", 20), ("defense", 15), ("special_attack", 105),
+              ("special_defense", 55), ("speed", 90), ("weight", 19.5)]),
+    ('diancie', [("type", "fairy"), ("type", "rock"), ("hp", 50), ("attack", 100), ("defense", 150),
+                ("special_attack", 100), ("special_defense", 150), ("speed", 50), ("weight", 8.8)]),
+])
+def test_pokemon_chunks_have_expected_features(expected_chunks: Tuple[str, List[Tuple[str, any]]], pokemon_chunks: cl.Chunks):
+    chunk_name, features = expected_chunks
+    pokemon_chunk = pokemon_chunks[cl.chunk(chunk_name)]
+    assert len(pokemon_chunk.features) == len(features) + 1
+    assert cl.feature('pokemon') in pokemon_chunk.features
+    for feature in features:
+        assert cl.feature(feature[0], feature[1]) in pokemon_chunk.features
 
 
 @pytest.mark.parametrize("defending_types, expected_super_effective_types", [

@@ -59,10 +59,10 @@ def _to_snake_case(camel_case: str) -> str:
 def _define_move_chunks(chunk_database: cl.Chunks):
     generation_database = pokemon_database.GenData(9)
     all_moves = generation_database.moves
-    for move_key, move_data in all_moves.items():
+    for name, move_data in all_moves.items():
         if 'isZ' in move_data:
             continue
-        chunk_database.define(chunk(move_key),
+        chunk_database.define(chunk(name),
                               feature('move'),
                               feature('accuracy', 100 if move_data['accuracy'] == True else move_data['accuracy']),
                               feature('base_power', move_data['basePower']),
@@ -74,18 +74,18 @@ def _define_move_chunks(chunk_database: cl.Chunks):
 def _define_pokemon_chunks(chunk_database: cl.Chunks):
     generation_database = pokemon_database.GenData(9)
     all_pokemon = generation_database.pokedex
-    for pokemon in all_pokemon.values():
+    for name, pokemon in all_pokemon.items():
         typing = pokemon['types']
         stats = pokemon['baseStats']
-        chunk_database.define(chunk(_to_snake_case(pokemon['name'])),
+        chunk_database.define(chunk(name),
                               feature('pokemon'),
                               feature('type', typing[0].lower()),
                               feature('type', typing[1].lower() if len(typing) > 1 else None),
                               feature('hp', stats['hp']),
                               feature('attack', stats['atk']),
                               feature('defense', stats['def']),
-                              feature('special-attack', stats['spa']),
-                              feature('special-defense', stats['spd']),
+                              feature('special_attack', stats['spa']),
+                              feature('special_defense', stats['spd']),
                               feature('speed', stats['spe']),
                               feature('weight', pokemon['weightkg']))
 
