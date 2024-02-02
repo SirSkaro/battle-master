@@ -50,7 +50,8 @@ def _define_type_chunks(chunk_database: cl.Chunks, rule_database: cl.Rules):
 
 
 _camel_case_pattern = re.compile(r'(?<!^)(?=[A-Z])')
-def _to_snake_case(camel_case:str) -> str:
+def _to_snake_case(camel_case: str) -> str:
+    camel_case = camel_case.replace('-', '')
     return _camel_case_pattern.sub('_', camel_case).lower()
 
 
@@ -65,9 +66,27 @@ def _define_move_chunks(chunk_database: cl.Chunks):
                               feature('accuracy', 100 if move_data['accuracy'] == True else move_data['accuracy']),
                               feature('base_power', move_data['basePower']),
                               feature('category', _to_snake_case(move_data['category'])),
-                              feature('pp', move_data['pp']),
                               feature('priority', move_data['priority']),
                               feature('type', _to_snake_case(move_data['type'])))
+
+
+def _define_pokemon_chunks(chunk_database: cl.Chunks):
+    generation_database = pokemon_database.gen_data.GenData(9)
+    all_pokemon = generation_database.pokedex
+    for pokemon in all_pokemon.values():
+        typing = pokemon['types']
+        stats = pokemon['baseStats']
+        chunk_database.define(chunk(_to_snake_case(pokemon['name'])),
+                              feature('pokemon'),
+                              feature('type', typing[0]),
+                              feature('type', typing[1] if len(typing) > 1 else None),
+                              feature('hp', stats['hp']),
+                              feature('attack', stats['atk']),
+                              feature('defense', stats['def']),
+                              feature('special-attack', stats['spa']),
+                              feature('special-defense', stats['spd']),
+                              feature('speed', stats['spe']),
+                              feature('weight', pokemon['weightkg']))
 
 
 def create_agent() -> Tuple[cl.Structure, Construct]:
@@ -76,6 +95,7 @@ def create_agent() -> Tuple[cl.Structure, Construct]:
 
     _define_type_chunks(chunk_database, rule_database)
     _define_move_chunks(chunk_database)
+    _define_pokemon_chunks(chunk_database)
 
     with cl.Structure(name=cl.agent('btlMaster')) as btlMaster:
         stimulus = Construct(name=buffer("stimulus"), process=cl.Stimulus())
@@ -92,7 +112,6 @@ def create_agent() -> Tuple[cl.Structure, Construct]:
             Construct(name=cl.flow_tt("associations"), process=cl.AssociativeRules(source=chunks("in"), rules=nacs.assets.rdb))
             Construct(name=chunks("out"), process=cl.MaxNodes(sources=[cl.flow_tt("associations")]))
             Construct(name=cl.terminus("main"), process=cl.ThresholdSelector(source=chunks("out"), threshold=0.1))
-
 
     return btlMaster, stimulus
 

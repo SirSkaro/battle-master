@@ -16,7 +16,7 @@ def mind_stimulus() -> Tuple[cl.Structure, cl.Construct]:
 
 @pytest.fixture
 def battlemaster(mind_stimulus: Tuple[cl.Structure, cl.Construct]) -> BattleMasterPlayer:
-    return BattleMasterPlayer(mind_stimulus[0], mind_stimulus[1])
+    return BattleMasterPlayer(mind_stimulus[0], mind_stimulus[1], start_listening=False)
 
 
 @pytest.fixture
