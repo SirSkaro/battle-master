@@ -61,7 +61,7 @@ def _define_move_chunks(chunk_database: cl.Chunks):
     for move_data in all_moves.values():
         if 'isZ' in move_data:
             continue
-        chunk_database.define(chunk(_to_snake_case(move_data['name'])),
+        chunk_database.define(chunk(_to_snake_case(move_data['name'].lower())),
                               feature('move'),
                               feature('accuracy', 100 if move_data['accuracy'] == True else move_data['accuracy']),
                               feature('base_power', move_data['basePower']),
@@ -78,8 +78,8 @@ def _define_pokemon_chunks(chunk_database: cl.Chunks):
         stats = pokemon['baseStats']
         chunk_database.define(chunk(_to_snake_case(pokemon['name'])),
                               feature('pokemon'),
-                              feature('type', typing[0]),
-                              feature('type', typing[1] if len(typing) > 1 else None),
+                              feature('type', typing[0].lower()),
+                              feature('type', typing[1].lower() if len(typing) > 1 else None),
                               feature('hp', stats['hp']),
                               feature('attack', stats['atk']),
                               feature('defense', stats['def']),
