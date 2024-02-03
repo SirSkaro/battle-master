@@ -108,50 +108,46 @@ def create_agent() -> Tuple[cl.Structure, cl.Construct]:
     wm_interface = cl.RegisterArray.Interface(name="wm", slots=1, vops=("choose_move",))
     choose_move_interface = _define_move_command_interface()
 
-    btlMaster = cl.Structure(name=cl.agent('btlMaster'),
+    agent = cl.Structure(name=cl.agent('btlMaster'),
                              assets=cl.Assets(
                                 working_memory=wm_interface,
                                 choose_move_interface=choose_move_interface)
                              )
 
-    with btlMaster:
+    with agent:
         stimulus = cl.Construct(name=buffer("stimulus"), process=cl.Stimulus())
-        acs_ctrl = cl.Construct(name=buffer("acs_ctrl"), process=cl.Stimulus()) #TODO expose WM and see if can manually mess around with it
-
-        cl.Construct(name=buffer("wm"),
-                     process=cl.RegisterArray(
-                         controller=(subsystem("acs"), cl.terminus("wm")),
-                         sources=((subsystem("nacs"), cl.terminus("main")),),
-                         interface=wm_interface)
-                     )
-
-        acs = cl.Structure(name=subsystem("acs"))
 
         nacs = cl.Structure(name=subsystem("nacs"),
-            assets=cl.Assets(
-                type_chunks=type_chunks,
-                move_chunks=move_chunks,
-                pokemon_chunks=pokemon_chunks,
-                rdb=rule_database
-            )
-        )
+                            assets=cl.Assets(
+                                type_chunks=type_chunks,
+                                move_chunks=move_chunks,
+                                pokemon_chunks=pokemon_chunks,
+                                rdb=rule_database)
+                            )
+
+        cl.Construct(name=buffer("wm"),
+                          process=cl.RegisterArray(
+                              controller=(subsystem("nacs"), cl.terminus("wm_write")),
+                              sources=((subsystem("nacs"), cl.terminus("main")),),
+                              interface=wm_interface)
+                          )
+
+        acs = cl.Structure(name=subsystem("acs"))
 
         with nacs:
             cl.Construct(name=cl.chunks("in"), process=cl.MaxNodes(sources=[buffer("stimulus")]))
             cl.Construct(name=cl.flow_tt("associations"), process=cl.AssociativeRules(source=chunks("in"), rules=nacs.assets.rdb))
             cl.Construct(name=chunks("out"), process=cl.MaxNodes(sources=[cl.flow_tt("associations")]))
             cl.Construct(name=cl.terminus("main"), process=cl.ThresholdSelector(source=chunks("out"), threshold=0.1))
+            cl.Construct(name=cl.terminus('wm_write'), process=cl.Constants(cl.nd.NumDict({feature(('wm', ('w', 0)), 'choose_move'): 1.0, feature(("wm", ("r", 0)), "read"): 1.0}, default=0.0)))
 
         with acs:
-            cl.Construct(name=cl.flow_in('in'), process=cl.TopDown(source=buffer("acs_ctrl"), chunks=type_chunks))
-            cl.Construct(name=features('main'), process=cl.MaxNodes(sources=[cl.flow_in('in')]))
-            cl.Construct(name=cl.flow_bt('to_move'), process=cl.BottomUp(source=features('main'), chunks=move_chunks))
+            cl.Construct(name=cl.flow_in('wm'), process=cl.TopDown(source=buffer("wm"), chunks=type_chunks))
+            cl.Construct(name=features('type_features'), process=cl.MaxNodes(sources=[cl.flow_in('wm')]))
+            cl.Construct(name=cl.flow_bt('to_move'), process=cl.BottomUp(source=features('type_features'), chunks=move_chunks))
             cl.Construct(name=cl.flow_tb('to_features'), process=cl.TopDown(source=cl.flow_bt('to_move'), chunks=move_chunks))
             cl.Construct(name=features('move_features'), process=cl.MaxNodes(sources=[cl.flow_tb('to_features')]))
-            #cl.Construct(name=cl.flow_in("wm"), process=cl.TopDown(source=buffer("wm"), chunks=move_chunks))
-            #cl.Construct(name=features('main'), process=cl.MaxNodes(sources=[cl.flow_in('wm')]))
-            cl.Construct(name=cl.terminus('wm'), process=cl.ActionSelector(source=features("main"), temperature=0.01, interface=btlMaster.assets.working_memory))
-            cl.Construct(name=cl.terminus("choose_move"), process=cl.ActionSelector(source=cl.features("move_features"), temperature=0.01, interface=btlMaster.assets.choose_move_interface))
+            cl.Construct(name=cl.terminus("choose_move"), process=cl.ActionSelector(source=cl.features("move_features"), temperature=0.00001, interface=agent.assets.choose_move_interface))
 
-    return btlMaster, stimulus
+    return agent, stimulus
 
