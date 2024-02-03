@@ -77,7 +77,7 @@ def test_move_chunks_have_expected_features(expected_chunks: Tuple[str, List[Tup
     chunk_name, features = expected_chunks
     move_chunk = move_chunks[cl.chunk(chunk_name)]
     assert len(move_chunk.features) == len(features) + 1
-    assert cl.feature('move') in move_chunk.features
+    assert cl.feature('move', chunk_name) in move_chunk.features
     for feature in features:
         assert cl.feature(feature[0], feature[1]) in move_chunk.features
 

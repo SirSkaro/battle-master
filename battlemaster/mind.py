@@ -2,8 +2,10 @@ from typing import Tuple
 import re
 
 import pyClarion as cl
-from pyClarion import chunk, rule, feature, buffer, subsystem, Construct, chunks, features
-from poke_env import data as pokemon_database
+from pyClarion import chunk, rule, feature, buffer, subsystem, chunks, features
+from poke_env import gen_data
+
+pokemon_database = gen_data.GenData(9)
 
 
 def _define_type_chunks(chunk_database: cl.Chunks, rule_database: cl.Rules):
@@ -57,13 +59,12 @@ def _to_snake_case(camel_case: str) -> str:
 
 
 def _define_move_chunks(chunk_database: cl.Chunks):
-    generation_database = pokemon_database.GenData(9)
-    all_moves = generation_database.moves
+    all_moves = pokemon_database.moves
     for name, move_data in all_moves.items():
         if 'isZ' in move_data:
             continue
         chunk_database.define(chunk(name),
-                              feature('move'),
+                              feature('move', name),
                               feature('accuracy', 100 if move_data['accuracy'] == True else move_data['accuracy']),
                               feature('base_power', move_data['basePower']),
                               feature('category', _to_snake_case(move_data['category'])),
@@ -71,9 +72,13 @@ def _define_move_chunks(chunk_database: cl.Chunks):
                               feature('type', _to_snake_case(move_data['type'])))
 
 
+def _define_move_command_interface() -> cl.Interface:
+    command_features = tuple([cl.feature('move', name) for name, data in pokemon_database.moves.items() if 'isZ' not in data])
+    return cl.Interface(cmds=command_features)
+
+
 def _define_pokemon_chunks(chunk_database: cl.Chunks):
-    generation_database = pokemon_database.GenData(9)
-    all_pokemon = generation_database.pokedex
+    all_pokemon = pokemon_database.pokedex
     for name, pokemon in all_pokemon.items():
         typing = pokemon['types']
         stats = pokemon['baseStats']
@@ -90,7 +95,7 @@ def _define_pokemon_chunks(chunk_database: cl.Chunks):
                               feature('weight', pokemon['weightkg']))
 
 
-def create_agent() -> Tuple[cl.Structure, Construct]:
+def create_agent() -> Tuple[cl.Structure, cl.Construct]:
     type_chunks = cl.Chunks()
     move_chunks = cl.Chunks()
     pokemon_chunks = cl.Chunks()
@@ -100,8 +105,28 @@ def create_agent() -> Tuple[cl.Structure, Construct]:
     _define_move_chunks(move_chunks)
     _define_pokemon_chunks(pokemon_chunks)
 
-    with cl.Structure(name=cl.agent('btlMaster')) as btlMaster:
-        stimulus = Construct(name=buffer("stimulus"), process=cl.Stimulus())
+    wm_interface = cl.RegisterArray.Interface(name="wm", slots=1, vops=("choose_move",))
+    choose_move_interface = _define_move_command_interface()
+
+    btlMaster = cl.Structure(name=cl.agent('btlMaster'),
+                             assets=cl.Assets(
+                                working_memory=wm_interface,
+                                choose_move_interface=choose_move_interface)
+                             )
+
+    with btlMaster:
+        stimulus = cl.Construct(name=buffer("stimulus"), process=cl.Stimulus())
+        acs_ctrl = cl.Construct(name=buffer("acs_ctrl"), process=cl.Stimulus()) #TODO expose WM and see if can manually mess around with it
+
+        cl.Construct(name=buffer("wm"),
+                     process=cl.RegisterArray(
+                         controller=(subsystem("acs"), cl.terminus("wm")),
+                         sources=((subsystem("nacs"), cl.terminus("main")),),
+                         interface=wm_interface)
+                     )
+
+        acs = cl.Structure(name=subsystem("acs"))
+
         nacs = cl.Structure(name=subsystem("nacs"),
             assets=cl.Assets(
                 type_chunks=type_chunks,
@@ -112,11 +137,21 @@ def create_agent() -> Tuple[cl.Structure, Construct]:
         )
 
         with nacs:
-            Construct(name=cl.chunks("in"), process=cl.MaxNodes(sources=[buffer("stimulus")]))
-            Construct(name=cl.flow_tb("main"), process=cl.TopDown(source=chunks("in"), chunks=nacs.assets.type_chunks))
-            Construct(name=cl.flow_tt("associations"), process=cl.AssociativeRules(source=chunks("in"), rules=nacs.assets.rdb))
-            Construct(name=chunks("out"), process=cl.MaxNodes(sources=[cl.flow_tt("associations")]))
-            Construct(name=cl.terminus("main"), process=cl.ThresholdSelector(source=chunks("out"), threshold=0.1))
+            cl.Construct(name=cl.chunks("in"), process=cl.MaxNodes(sources=[buffer("stimulus")]))
+            cl.Construct(name=cl.flow_tt("associations"), process=cl.AssociativeRules(source=chunks("in"), rules=nacs.assets.rdb))
+            cl.Construct(name=chunks("out"), process=cl.MaxNodes(sources=[cl.flow_tt("associations")]))
+            cl.Construct(name=cl.terminus("main"), process=cl.ThresholdSelector(source=chunks("out"), threshold=0.1))
+
+        with acs:
+            cl.Construct(name=cl.flow_in('in'), process=cl.TopDown(source=buffer("acs_ctrl"), chunks=type_chunks))
+            cl.Construct(name=features('main'), process=cl.MaxNodes(sources=[cl.flow_in('in')]))
+            cl.Construct(name=cl.flow_bt('to_move'), process=cl.BottomUp(source=features('main'), chunks=move_chunks))
+            cl.Construct(name=cl.flow_tb('to_features'), process=cl.TopDown(source=cl.flow_bt('to_move'), chunks=move_chunks))
+            cl.Construct(name=features('move_features'), process=cl.MaxNodes(sources=[cl.flow_tb('to_features')]))
+            #cl.Construct(name=cl.flow_in("wm"), process=cl.TopDown(source=buffer("wm"), chunks=move_chunks))
+            #cl.Construct(name=features('main'), process=cl.MaxNodes(sources=[cl.flow_in('wm')]))
+            cl.Construct(name=cl.terminus('wm'), process=cl.ActionSelector(source=features("main"), temperature=0.01, interface=btlMaster.assets.working_memory))
+            cl.Construct(name=cl.terminus("choose_move"), process=cl.ActionSelector(source=cl.features("move_features"), temperature=0.01, interface=btlMaster.assets.choose_move_interface))
 
     return btlMaster, stimulus
 
