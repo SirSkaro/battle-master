@@ -114,7 +114,7 @@ def test_pokemon_chunks_have_expected_features(expected_chunks: Tuple[str, List[
 ])
 def test_super_effective_association(defending_types, expected_super_effective_types, agent: cl.Structure, stimulus: cl.Construct, nacs_terminus: cl.Construct):
     presented_types = {cl.chunk(defending_type): 1. for defending_type in defending_types}
-    stimulus.process.input(presented_types)
+    stimulus.process.input({'active_opponent_type': presented_types})
     agent.step()
     nacs_output = nacs_terminus.output
 
@@ -129,7 +129,7 @@ def test_super_effective_association(defending_types, expected_super_effective_t
 ])
 def test_acs_chooses_super_effective_move(defending_types: List[str], expected_super_effective_types: List[str], agent: cl.Structure, stimulus: cl.Construct, acs_terminus: cl.Construct, pokemon_database: GenData):
     presented_types = {cl.chunk(defending_type): 1. for defending_type in defending_types}
-    stimulus.process.input(presented_types)
+    stimulus.process.input({'active_opponent_type': presented_types})
     agent.step()
 
     acs_action = acs_terminus.output

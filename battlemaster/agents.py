@@ -15,9 +15,10 @@ class BattleMasterPlayer(Player):
 
     def choose_move(self, battle: Battle):
         type1, type2 = battle.opponent_active_pokemon.types
-        stimulus = {chunk(type1.name.lower()): 1.}
+        active_opponent_type = {chunk(type1.name.lower()): 1.}
         if type2 is not None:
-            stimulus[chunk(type2.name.lower())] = 1.
+            active_opponent_type[chunk(type2.name.lower())] = 1.
+        stimulus = {'active_opponent_type': active_opponent_type}
 
         self.stimulus.process.input(stimulus)
         self.mind.step()
@@ -32,7 +33,7 @@ class BattleMasterPlayer(Player):
         for move_type_to_choose in move_type_priority_list:
             for available_move in battle.available_moves:
                 if available_move.type.name.lower() == move_type_to_choose:
-                    self.logger.info(f'I am picking on of my super-effective moves: {available_move.id}')
+                    self.logger.info(f'I am picking one of my super-effective moves: {available_move.id}')
                     return self.create_order(available_move)
 
         self.logger.info(f"I don't have a super-effective move. Picking a random action...")

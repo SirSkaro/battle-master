@@ -5,6 +5,8 @@ import pyClarion as cl
 from pyClarion import chunk, rule, feature, buffer, subsystem, chunks, features
 from poke_env import gen_data
 
+from .clarion_ext import NamedStimuli, AttentionFilter
+
 pokemon_database = gen_data.GenData(9)
 
 
@@ -105,7 +107,7 @@ def create_agent() -> Tuple[cl.Structure, cl.Construct]:
     _define_move_chunks(move_chunks)
     _define_pokemon_chunks(pokemon_chunks)
 
-    wm_interface = cl.RegisterArray.Interface(name="wm", slots=1, vops=("choose_move",))
+    wm_interface = cl.RegisterArray.Interface(name="wm", slots=1, vops=("super_effective_type",))
     choose_move_interface = _define_move_command_interface()
 
     agent = cl.Structure(name=cl.agent('btlMaster'),
@@ -115,7 +117,7 @@ def create_agent() -> Tuple[cl.Structure, cl.Construct]:
                              )
 
     with agent:
-        stimulus = cl.Construct(name=buffer("stimulus"), process=cl.Stimulus())
+        stimulus = cl.Construct(name=buffer("stimulus"), process=NamedStimuli(['active_opponent_type']))
 
         nacs = cl.Structure(name=subsystem("nacs"),
                             assets=cl.Assets(
@@ -135,11 +137,11 @@ def create_agent() -> Tuple[cl.Structure, cl.Construct]:
         acs = cl.Structure(name=subsystem("acs"))
 
         with nacs:
-            cl.Construct(name=cl.chunks("in"), process=cl.MaxNodes(sources=[buffer("stimulus")]))
+            cl.Construct(name=cl.chunks("in"), process=AttentionFilter(base=cl.MaxNodes(sources=[buffer("stimulus")]), attend_to=['active_opponent_type']))
             cl.Construct(name=cl.flow_tt("associations"), process=cl.AssociativeRules(source=chunks("in"), rules=nacs.assets.rdb))
             cl.Construct(name=chunks("out"), process=cl.MaxNodes(sources=[cl.flow_tt("associations")]))
             cl.Construct(name=cl.terminus("main"), process=cl.ThresholdSelector(source=chunks("out"), threshold=0.1))
-            cl.Construct(name=cl.terminus('wm_write'), process=cl.Constants(cl.nd.NumDict({feature(('wm', ('w', 0)), 'choose_move'): 1.0, feature(("wm", ("r", 0)), "read"): 1.0}, default=0.0)))
+            cl.Construct(name=cl.terminus('wm_write'), process=cl.Constants(cl.nd.NumDict({feature(('wm', ('w', 0)), 'super_effective_type'): 1.0, feature(("wm", ("r", 0)), "read"): 1.0}, default=0.0)))
 
         with acs:
             cl.Construct(name=cl.flow_in('wm'), process=cl.TopDown(source=buffer("wm"), chunks=type_chunks))
