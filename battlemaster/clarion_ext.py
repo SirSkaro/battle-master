@@ -17,6 +17,10 @@ class GroupedChunk(chunk):
     def __setattr__(self, key, value):
         object.__setattr__(self, key, value)
 
+    def __repr__(self):
+        cls_name = type(self).__name__
+        return "{}({}|{})".format(cls_name, repr(self.cid), self.group)
+
     @staticmethod
     def from_chunk(other: chunk, group: str):
         return GroupedChunk(other.cid, group)
@@ -73,8 +77,7 @@ class AttentionFilter(Wrapped[Pt]):
         attended_inputs = {}
         for source, emission in inputs.items():
             attended_emissions = self._filter_to_attended(emission)
-            if len(attended_emissions) > 0:
-                attended_inputs[source] = attended_emissions
+            attended_inputs[source] = attended_emissions if len(attended_emissions) > 0 else nd.NumDict(default=0.0)
 
         return MappingProxyType(attended_inputs)
 

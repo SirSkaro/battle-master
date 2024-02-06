@@ -117,7 +117,7 @@ def create_agent() -> Tuple[cl.Structure, cl.Construct]:
                              )
 
     with agent:
-        stimulus = cl.Construct(name=buffer("stimulus"), process=NamedStimuli(['active_opponent_type']))
+        stimulus = cl.Construct(name=buffer("stimulus"), process=NamedStimuli(['active_opponent_type', 'available_moves']))
 
         nacs = cl.Structure(name=subsystem("nacs"),
                             assets=cl.Assets(
@@ -144,11 +144,14 @@ def create_agent() -> Tuple[cl.Structure, cl.Construct]:
             cl.Construct(name=cl.terminus('wm_write'), process=cl.Constants(cl.nd.NumDict({feature(('wm', ('w', 0)), 'super_effective_type'): 1.0, feature(("wm", ("r", 0)), "read"): 1.0}, default=0.0)))
 
         with acs:
+            cl.Construct(name=cl.flow_in("available_moves"), process=AttentionFilter(base=cl.TopDown(source=buffer("stimulus"), chunks=move_chunks), attend_to=['available_moves']))
+
             cl.Construct(name=cl.flow_in('wm'), process=cl.TopDown(source=buffer("wm"), chunks=type_chunks))
             cl.Construct(name=features('type_features'), process=cl.MaxNodes(sources=[cl.flow_in('wm')]))
             cl.Construct(name=cl.flow_bt('to_move'), process=cl.BottomUp(source=features('type_features'), chunks=move_chunks))
             cl.Construct(name=cl.flow_tb('to_features'), process=cl.TopDown(source=cl.flow_bt('to_move'), chunks=move_chunks))
-            cl.Construct(name=features('move_features'), process=cl.MaxNodes(sources=[cl.flow_tb('to_features')]))
+
+            cl.Construct(name=features('move_features'), process=cl.Filtered(base=cl.MaxNodes(sources=[cl.flow_tb('to_features')]), invert=False, controller=cl.flow_in("available_moves")))
             cl.Construct(name=cl.terminus("choose_move"), process=cl.ActionSelector(source=cl.features("move_features"), temperature=0.00001, interface=agent.assets.choose_move_interface))
 
     return agent, stimulus

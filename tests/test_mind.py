@@ -122,21 +122,20 @@ def test_super_effective_association(defending_types, expected_super_effective_t
     assert sorted(expected_super_effective_types) == sorted(super_effective_types)
 
 
-@pytest.mark.parametrize("defending_types, expected_super_effective_types", [
-    (["normal"], ["fighting"]),
-    (["ghost"], ["ghost", "dark"]),
-    (["steel", "flying"], ["electric", "rock", "ice", "fighting", "fire", "ground"])
+@pytest.mark.parametrize("active_opponent_type, available_moves, acceptable_moves", [
+    (["normal"], ["tackle", "doublekick", "leer", "mudslap"], ["doublekick"]),
+    (["ghost"], ["knockoff", "sludgewave", "doubleedge"], ["knockoff"]),
+    (["steel", "flying"], ["thunder", "stoneedge", "sludge", "gigadrain"], ["thunder", "stoneedge"])
 ])
-def test_acs_chooses_super_effective_move(defending_types: List[str], expected_super_effective_types: List[str], agent: cl.Structure, stimulus: cl.Construct, acs_terminus: cl.Construct, pokemon_database: GenData):
-    presented_types = {cl.chunk(defending_type): 1. for defending_type in defending_types}
-    stimulus.process.input({'active_opponent_type': presented_types})
+def test_acs_chooses_super_effective_move_from_available_moves(active_opponent_type: List[str], available_moves: List[str], acceptable_moves: List[str], agent: cl.Structure, stimulus: cl.Construct, acs_terminus: cl.Construct):
+    stimulus.process.input({
+        'active_opponent_type': {cl.chunk(defending_type): 1. for defending_type in active_opponent_type},
+        'available_moves': {cl.chunk(name): 1. for name in available_moves}
+    })
     agent.step()
 
     acs_action = acs_terminus.output
-    chosen_move_name = next(iter(acs_action)).val
+    chosen_move = next(iter(acs_action)).val
 
-    move = pokemon_database.moves[chosen_move_name]
-    move_type = move['type'].lower()
-
-    assert move_type in expected_super_effective_types
+    assert chosen_move in acceptable_moves
 
