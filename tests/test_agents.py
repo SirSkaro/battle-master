@@ -1,22 +1,16 @@
-from typing import Tuple, Optional, List
+from typing import Tuple
 from unittest.mock import Mock
 
 import pytest
 import pyClarion as cl
 
-from battlemaster import mind
 from battlemaster.agents import BattleMasterPlayer
 from poke_env.environment import Battle, Pokemon, Move, PokemonType
 
 
 @pytest.fixture
-def mind_stimulus() -> Tuple[cl.Structure, cl.Construct]:
-    return mind.create_agent()
-
-
-@pytest.fixture
-def battlemaster(mind_stimulus: Tuple[cl.Structure, cl.Construct]) -> BattleMasterPlayer:
-    return BattleMasterPlayer(mind_stimulus[0], mind_stimulus[1], start_listening=False)
+def battlemaster(agent_stimulus: Tuple[cl.Structure, cl.Construct]) -> BattleMasterPlayer:
+    return BattleMasterPlayer(agent_stimulus[0], agent_stimulus[1], start_listening=False)
 
 
 @pytest.fixture

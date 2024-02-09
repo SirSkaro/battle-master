@@ -1,11 +1,12 @@
 from types import MappingProxyType
 from typing import *
 
-from pyClarion import *
-from pyClarion.base.realizers import Ot, Pt
+import pyClarion as cl
+from pyClarion import nd
+from pyClarion.base.realizers import Pt
 
 
-class GroupedChunk(chunk):
+class GroupedChunk(cl.chunk):
     """A chunk symbol with extra metadata attaching it to a group"""
     __slots__ = ('_args', 'group')
     group: str
@@ -22,22 +23,22 @@ class GroupedChunk(chunk):
         return "{}({}|{})".format(cls_name, repr(self.cid), self.group)
 
     @staticmethod
-    def from_chunk(other: chunk, group: str):
+    def from_chunk(other: cl.chunk, group: str):
         return GroupedChunk(other.cid, group)
 
 
-class NamedStimuli(Process):
+class NamedStimuli(cl.Process):
     """
     Because a single stimulus buffer can only communicate chunks/features without any context, it's impossible to
     explicitly model the game state (e.g., communicate which is the active Pokemon vs benched Pokemon). This class is an
     adapter to name certain stimuli so that different parts of the game state can be explicitly communicated.
     """
 
-    _serves = ConstructType.buffer
+    _serves = cl.ConstructType.buffer
 
     def __init__(self, named_stimuli: List[str]) -> None:
         super().__init__()
-        self.stimuli: Dict[str, Stimulus] = {name: Stimulus() for name in named_stimuli}
+        self.stimuli: Dict[str, cl.Stimulus] = {name: cl.Stimulus() for name in named_stimuli}
 
     def input(self, named_stimuli: Dict[str, nd.NumDict]) -> None:
         for name, numdict in named_stimuli.items():
@@ -66,8 +67,8 @@ class NamedStimuli(Process):
         return result
 
 
-class AttentionFilter(Wrapped[Pt]):
-    _serves = ConstructType.buffer
+class AttentionFilter(cl.Wrapped[Pt]):
+    _serves = cl.ConstructType.buffer
 
     def __init__(self, base: Pt, attend_to: List[str]) -> None:
         super().__init__(base=base)
