@@ -1,8 +1,17 @@
 from typing import Mapping, Optional
+from enum import Enum
 
 import pyClarion as cl
 from pyClarion import nd
 from poke_env.environment import Battle
+
+
+class BattleConcept(str, Enum):
+    ACTIVE_OPPONENT_TYPE = 'active_opponent_type'
+    AVAILABLE_MOVES = 'available_moves'
+
+    def __str__(self) -> str:
+        return self.value
 
 
 class MindAdapter:
@@ -13,8 +22,8 @@ class MindAdapter:
 
     def perceive(self, battle: Battle) -> Mapping[str, nd.NumDict]:
         perception = {
-            'active_opponent_type': nd.NumDict({cl.chunk(typing.name): 1.0 for typing in battle.opponent_active_pokemon.types if typing is not None}),
-            'available_moves': nd.NumDict({cl.chunk(move.id): 1.0 for move in battle.available_moves})
+            BattleConcept.ACTIVE_OPPONENT_TYPE: nd.NumDict({cl.chunk(typing.name): 1.0 for typing in battle.opponent_active_pokemon.types if typing is not None}),
+            BattleConcept.AVAILABLE_MOVES: nd.NumDict({cl.chunk(move.id): 1.0 for move in battle.available_moves})
         }
 
         self._stimulus.process.input(perception)
