@@ -79,6 +79,12 @@ class TestMindAdapter:
 
         assert chosen_action is None
 
+    def test_move_chosen(self, mind_adapter: MindAdapter, acs_terminus):
+        self._given_chosen_move(acs_terminus, "snore")
+        chosen_action = mind_adapter.choose_action()
+
+        assert chosen_action is "snore"
+
     @staticmethod
     def _given_move(name: str) -> Move:
         move = Mock(spec=Move)
@@ -101,3 +107,7 @@ class TestMindAdapter:
     @staticmethod
     def _given_no_chosen_move(acs_terminus):
         acs_terminus.output = nd.NumDict()
+
+    @staticmethod
+    def _given_chosen_move(acs_terminus, move_name: str):
+        acs_terminus.output = nd.NumDict({cl.feature('move', move_name): 1.0})
