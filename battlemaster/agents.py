@@ -1,43 +1,36 @@
-from random import shuffle
-
-from pyClarion import chunk
-from poke_env.player import Player
+from poke_env.player import Player, BattleOrder
 from poke_env.environment import Battle, Move
-from pyClarion import Structure, Construct, subsystem, flow_tt
+
+from .clarion_adapter import MindAdapter
 
 
 class BattleMasterPlayer(Player):
 
-    def __init__(self, mind: Structure, stimulus: Construct, *args, **kwargs):
+    def __init__(self, mind: MindAdapter, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.mind = mind
-        self.stimulus = stimulus
+        self._mind = mind
 
-    def choose_move(self, battle: Battle):
-        type1, type2 = battle.opponent_active_pokemon.types
-        active_opponent_type = {chunk(type1.name.lower()): 1.}
-        if type2 is not None:
-            active_opponent_type[chunk(type2.name.lower())] = 1.
-        stimulus = {'active_opponent_type': active_opponent_type}
+    def choose_move(self, battle: Battle) -> BattleOrder:
+        perception = self._mind.perceive(battle)
+        chosen_move = self._mind.choose_action()
 
-        self.stimulus.process.input(stimulus)
-        self.mind.step()
-        associations = self.mind.output[(subsystem('nacs'), flow_tt('associations'))]
+        self.logger.info(f'I see {perception}')
 
-        move_type_priority_list = [symbol.cid for symbol in sorted(associations, key=associations.get, reverse=True) if isinstance(symbol, chunk)]
-        shuffle(battle.available_moves)
+        if chosen_move is not None:
+            self.logger.info(f"I'm choosing {chosen_move}")
+            return self._select_move(battle, chosen_move)
 
-        self.logger.info(f'I see {stimulus}')
-        self.logger.info(f'I know these types are super-effective: {move_type_priority_list}, and I have {[move.id for move in battle.available_moves]}')
-
-        for move_type_to_choose in move_type_priority_list:
-            for available_move in battle.available_moves:
-                if available_move.type.name.lower() == move_type_to_choose:
-                    self.logger.info(f'I am picking one of my super-effective moves: {available_move.id}')
-                    return self.create_order(available_move)
-
-        self.logger.info(f"I don't have a super-effective move. Picking a random action...")
+        self.logger.info("I couldn't decide on an action. I'm picking a random action")
         return self.choose_random_move(battle)
+
+    def _select_move(self, battle: Battle, move_name: str) -> BattleOrder:
+        move_names = [move.id for move in battle.available_moves]
+        if move_name not in move_names:
+            self.logger.warning(f"Attempted to choose {move_name}, but it's not one of the available moves: {move_names}. Choosing a random action instead.")
+            return self.choose_random_move(battle)
+
+        move_to_choose = [move for move in battle.available_moves if move.id == move_name][0]
+        return self.create_order(move_to_choose)
 
 
 class MaxDamagePlayer(Player):

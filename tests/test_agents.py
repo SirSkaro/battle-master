@@ -1,46 +1,90 @@
-from typing import Tuple
-from unittest.mock import Mock
+from unittest.mock import Mock, MagicMock
+from typing import Optional
 
 import pytest
+from battlemaster.agents import BattleMasterPlayer
+from poke_env.environment import Battle, Move, Pokemon, PokemonType
 import pyClarion as cl
 
-from battlemaster.agents import BattleMasterPlayer
-from poke_env.environment import Battle, Pokemon, Move, PokemonType
+from battlemaster.clarion_adapter import MindAdapter
 
 
-@pytest.fixture
-def battlemaster(agent_stimulus: Tuple[cl.Structure, cl.Construct]) -> BattleMasterPlayer:
-    return BattleMasterPlayer(agent_stimulus[0], agent_stimulus[1], start_listening=False)
-
+def _given_move(name: str) -> Move:
+    move = Mock(spec=Move)
+    move.id = name
+    return move
 
 @pytest.fixture
 def battle():
     battle = Mock(spec=Battle)
-    pokemon = Mock(spec=Pokemon)
-    type_ghost = Mock(spec=PokemonType)
-    type_fairy = Mock(spec=PokemonType)
-    battle.opponent_active_pokemon = pokemon
-    pokemon.types = (type_ghost, type_fairy)
-    type_ghost.name = 'ghost'
-    type_fairy.name = 'fairy'
+    battle.available_switches = []
+    battle.can_mega_evolve = False
+    battle.can_dynamax = False
+    battle.can_tera = False
+    battle.can_z_move = False
     return battle
 
 
-class TestBattleMasterPlayer:
-    def test_choose_move_selects_super_effective_type(self, battlemaster: BattleMasterPlayer, battle):
-        expected_move = self._create_move('ghost')
-        battle.available_moves = [self._create_move('ice'), self._create_move('electric'), expected_move]
+class TestBattleMasterPlayerUnitTests:
+    @pytest.fixture
+    def mind_adapter(self) -> MindAdapter:
+        return Mock(spec=MindAdapter)
 
-        selected_move = battlemaster.choose_move(battle)
+    @pytest.fixture
+    def player(self, mind_adapter: MindAdapter) -> BattleMasterPlayer:
+        return BattleMasterPlayer(mind_adapter, start_listening=False)
 
-        assert selected_move.order == expected_move
+    def test_choose_move_selects_available_move(self, player: BattleMasterPlayer, battle, mind_adapter):
+        mind_adapter.choose_action = MagicMock(return_value='bodyslam')
+        battle.available_moves = [_given_move('sleeptalk'), _given_move('bodyslam')]
+
+        issued_action = player.choose_move(battle)
+
+        assert issued_action.order.id == 'bodyslam'
+
+    def test_choose_move_selects_random_if_chosen_move_is_not_available(self, player: BattleMasterPlayer, battle, mind_adapter):
+        mind_adapter.choose_action = MagicMock(return_value='hyperbeam')
+        battle.available_moves = [_given_move('sleeptalk')]
+
+        issued_action = player.choose_move(battle)
+
+        assert issued_action.order.id == 'sleeptalk'
+
+    def test_choose_move_selects_random_move_if_no_action_chosen(self, player: BattleMasterPlayer, battle, mind_adapter):
+        mind_adapter.choose_action = MagicMock(return_value=None)
+        battle.available_moves = [_given_move('gigaimpact')]
+
+        issued_action = player.choose_move(battle)
+
+        assert issued_action.order.id == 'gigaimpact'
+
+
+class TestBattleMasterPlayerComponentTests:
+    @pytest.fixture
+    def mind_adapter(self, agent: cl.Structure, stimulus: cl.Construct) -> MindAdapter:
+        return MindAdapter(agent, stimulus)
+
+    @pytest.fixture
+    def player(self, mind_adapter: MindAdapter) -> BattleMasterPlayer:
+        return BattleMasterPlayer(mind_adapter, start_listening=False)
+
+    def test_chooses_super_effective_move(self, player: BattleMasterPlayer, battle):
+        battle.available_moves = [_given_move('darkpulse'), _given_move('bodyslam')]
+        battle.opponent_active_pokemon = self._given_opposing_pokemon('ghost')
+
+        issued_action = player.choose_move(battle)
+
+        assert issued_action.order.id == 'darkpulse'
+
+    def _given_opposing_pokemon(self, type1: str, type2: Optional[str] = None) -> Pokemon:
+        pokemon = Mock(spec=Pokemon)
+        primary_type = self._given_type(type1)
+        secondary_type = self._given_type(type2) if type2 is not None else None
+        pokemon.types = (primary_type, secondary_type)
+        return pokemon
 
     @staticmethod
-    def _create_move(type_name: str) -> Move:
-        move = Mock(spec=Move)
-        move.id = f'Some {type_name} move'
-        pokemon_type = Mock(spec=PokemonType)
-        move.type = pokemon_type
-        pokemon_type.name = type_name
-        return move
-
+    def _given_type(name: str) -> PokemonType:
+        type = Mock(spec=PokemonType)
+        type.name = name
+        return type

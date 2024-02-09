@@ -7,6 +7,7 @@ from poke_env.player import RandomPlayer, Player
 
 from .mind import create_agent
 from .agents import BattleMasterPlayer, MaxDamagePlayer
+from .clarion_adapter import MindAdapter
 
 
 class PlayerSingleton(providers.Provider):
@@ -52,11 +53,10 @@ def _get_showdown_config(config: providers.Configuration):
 
 def _configure_player(config: providers.Configuration) -> PlayerSingleton:
     account_config, server_config = _get_showdown_config(config)
-    mind, stimulus = _configure_mind()
+    mind = _configure_mind()
     return PlayerSingleton(
         BattleMasterPlayer,
         mind=mind,
-        stimulus=stimulus,
         account_configuration=account_config,
         server_configuration=server_config,
         max_concurrent_battles=config.agent.max_concurrent_battles.as_int()()
@@ -74,7 +74,7 @@ def _configure_benchmark_player(config: providers.Configuration, provides: Type)
 
 def _configure_mind():
     mind, stimulus = create_agent()
-    return providers.Object(mind), providers.Object(stimulus)
+    return providers.Object(MindAdapter(mind, stimulus))
 
 
 class Container(containers.DeclarativeContainer):

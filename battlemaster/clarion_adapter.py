@@ -22,7 +22,7 @@ class MindAdapter:
 
     def perceive(self, battle: Battle) -> Mapping[str, nd.NumDict]:
         perception = {
-            BattleConcept.ACTIVE_OPPONENT_TYPE: nd.NumDict({cl.chunk(typing.name): 1.0 for typing in battle.opponent_active_pokemon.types if typing is not None}),
+            BattleConcept.ACTIVE_OPPONENT_TYPE: nd.NumDict({cl.chunk(typing.name.lower()): 1.0 for typing in battle.opponent_active_pokemon.types if typing is not None}),
             BattleConcept.AVAILABLE_MOVES: nd.NumDict({cl.chunk(move.id): 1.0 for move in battle.available_moves})
         }
 
