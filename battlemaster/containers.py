@@ -3,7 +3,7 @@ from typing import Type
 
 from dependency_injector import containers, providers
 from poke_env import AccountConfiguration, ServerConfiguration
-from poke_env.player import RandomPlayer, Player
+from poke_env.player import RandomPlayer, Player, SimpleHeuristicsPlayer
 
 from .mind import create_agent
 from .agents import BattleMasterPlayer, MaxDamagePlayer
@@ -86,5 +86,6 @@ class Container(containers.DeclarativeContainer):
     player = _configure_player(config)
     benchmark_agents = providers.Dict(
         random=_configure_benchmark_player(config, RandomPlayer),
-        max_damage=_configure_benchmark_player(config, MaxDamagePlayer)
+        max_damage=_configure_benchmark_player(config, MaxDamagePlayer),
+        simple_heuristic=_configure_benchmark_player(config, SimpleHeuristicsPlayer)
     )
