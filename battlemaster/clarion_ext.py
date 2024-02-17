@@ -92,3 +92,8 @@ class AttentionFilter(cl.Wrapped[Pt]):
 
         return attended
 
+
+class MentalSimulation(cl.Process):
+    _serves = cl.ConstructType.chunk
+
+    pass

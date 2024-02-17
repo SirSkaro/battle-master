@@ -1,7 +1,13 @@
+from typing import List
+
 from poke_env.player import Player, BattleOrder
 from poke_env.environment import Battle, Move
+from poke_engine.select_best_move import get_payoff_matrix, pick_safest
+from poke_engine import Battle as BattleSimulation, StateMutator
+from poke_engine.constants import SWITCH_STRING as SWITCH_ACTION
 
 from .clarion_adapter import MindAdapter
+from .poke_engine_adapter import convert_battle
 
 
 class BattleMasterPlayer(Player):
@@ -35,7 +41,6 @@ class BattleMasterPlayer(Player):
 
 class MaxDamagePlayer(Player):
     def choose_move(self, battle: Battle):
-
         if battle.available_moves:
             move_score_tuples = [(move, self._calculate_score(battle, move)) for move in battle.available_moves]
             self.logger.info(f"My available moves (and scores) are {[(move.id, score) for move, score in move_score_tuples]}")
@@ -52,3 +57,49 @@ class MaxDamagePlayer(Player):
         target_pokemon = battle.opponent_active_pokemon
         stab_bonus = 1.5 if move.type in battle.active_pokemon.types else 1
         return move.base_power * target_pokemon.damage_multiplier(move) * stab_bonus
+
+
+class ExpectiminimaxPlayer(Player):
+    def choose_move(self, battle: Battle):
+        simulation = convert_battle(battle)
+        action = self._simulate_and_pick_safest_move(simulation)
+        if action.startswith(SWITCH_ACTION):
+            return self._select_switch(battle, action)
+
+        return self._select_move(battle, action)
+
+    def _simulate_and_pick_safest_move(self, simulation: BattleSimulation) -> str:
+        battles = simulation.prepare_battles(join_moves_together=True)
+        all_scores = dict()
+        for i, b in enumerate(battles):
+            state = b.create_state()
+            mutator = StateMutator(state)
+            user_options, opponent_options = b.get_all_options()
+            self.logger.info("Searching through the state: {}".format(mutator.state))
+            scores = get_payoff_matrix(mutator, user_options, opponent_options, prune=True)
+
+            prefixed_scores = self._prefix_opponent_move(scores, str(i))
+            all_scores = {**all_scores, **prefixed_scores}
+
+        decision, payoff = pick_safest(all_scores, remove_guaranteed=True)
+        choice = decision[0]
+        self.logger.info("Safest: {}, {}".format(choice, payoff))
+        return choice
+
+    def _select_switch(self, battle: Battle, pokemon_name: str) -> BattleOrder:
+        pokemon_name = pokemon_name.split(SWITCH_ACTION)[-1].strip()
+        pokemon_to_choose = [pokemon for pokemon in battle.available_switches if pokemon.species == pokemon_name][0]
+        return self.create_order(pokemon_to_choose)
+
+    def _select_move(self, battle: Battle, move_name: str) -> BattleOrder:
+        move_to_choose = [move for move in battle.available_moves if move.id == move_name][0]
+        return self.create_order(move_to_choose)
+
+    def _prefix_opponent_move(self, score_lookup, prefix):
+        new_score_lookup = dict()
+        for k, v in score_lookup.items():
+            bot_move, opponent_move = k
+            new_opponent_move = "{}_{}".format(opponent_move, prefix)
+            new_score_lookup[(bot_move, new_opponent_move)] = v
+
+        return new_score_lookup
