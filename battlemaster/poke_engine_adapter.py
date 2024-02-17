@@ -41,10 +41,10 @@ class BattleSimulationAdapter(Simulation):
         user = Battler()
         user.name = battle.player_username
         user.account_name = battle.player_username
-        user.active = cls._convert_player_pokemon(battle.active_pokemon) if battle.active_pokemon is not None else None
-        user.reserve = [cls._convert_player_pokemon(pokemon) for pokemon in battle.available_switches]
+        user.active = cls._convert_player_pokemon(battle.active_pokemon, battle) if battle.active_pokemon is not None else None
+        user.reserve = [cls._convert_player_pokemon(pokemon, battle) for pokemon in battle.available_switches]
         user.trapped = Effect.TRAPPED in battle.active_pokemon.effects if battle.active_pokemon is not None else False
-        user.side_conditions = defaultdict(lambda: 0, {normalize_name(condition).replace("_", ""): value for condition, value in battle.side_conditions.items()})
+        user.side_conditions = defaultdict(lambda: 0, {normalize_name(condition.name).replace("_", ""): value for condition, value in battle.side_conditions.items()})
 
         return user
 
@@ -56,12 +56,12 @@ class BattleSimulationAdapter(Simulation):
         user.active = cls._convert_opponent_pokemon(battle.opponent_active_pokemon) if battle.opponent_active_pokemon is not None else None
         user.reserve = [cls._convert_opponent_pokemon(pokemon) for pokemon in battle.opponent_team.values() if not pokemon.active]
         user.trapped = Effect.TRAPPED in battle.opponent_active_pokemon.effects if battle.opponent_active_pokemon is not None else False
-        user.side_conditions = defaultdict(lambda: 0, {normalize_name(condition).replace("_", ""): value for condition, value in battle.opponent_side_conditions.items()})
+        user.side_conditions = defaultdict(lambda: 0, {normalize_name(condition.name).replace("_", ""): value for condition, value in battle.opponent_side_conditions.items()})
 
         return user
 
     @staticmethod
-    def _convert_player_pokemon(pokemon: Pokemon) -> PokemonSimulation:
+    def _convert_player_pokemon(pokemon: Pokemon, battle: Battle) -> PokemonSimulation:
         simulated = PokemonSimulation(pokemon.species, pokemon.level)
         simulated.fainted = pokemon.fainted
         simulated.status = normalize_name(pokemon.status.name) if pokemon.status is not None else None
@@ -76,7 +76,7 @@ class BattleSimulationAdapter(Simulation):
         simulated.max_hp = pokemon.max_hp
         simulated.item = pokemon.item
         simulated.ability = pokemon.ability
-        for move in pokemon.moves.values():
+        for move in battle.available_moves:
             simulated.add_move(move.id)
         simulated.volatile_statuses = [normalize_name(effect.name).replace("_", "") for effect, count in pokemon.effects.items() if count > 0]
         simulated.boosts = {

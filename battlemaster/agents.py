@@ -86,7 +86,7 @@ class ExpectiminimaxPlayer(Player):
 
     def _select_switch(self, battle: Battle, pokemon_name: str) -> BattleOrder:
         pokemon_name = pokemon_name.split(SWITCH_ACTION)[-1].strip()
-        pokemon_to_choose = [pokemon for pokemon in battle.available_switches if pokemon.species == pokemon_name][0]
+        pokemon_to_choose = [pokemon for pokemon in battle.available_switches if pokemon.species == pokemon_name or pokemon.base_species == pokemon_name][0]
         return self.create_order(pokemon_to_choose)
 
     def _select_move(self, battle: Battle, move_name: str) -> BattleOrder:
