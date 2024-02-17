@@ -6,7 +6,7 @@ from poke_env import AccountConfiguration, ServerConfiguration
 from poke_env.player import RandomPlayer, Player, SimpleHeuristicsPlayer
 
 from .mind import create_agent
-from .agents import BattleMasterPlayer, MaxDamagePlayer
+from .agents import BattleMasterPlayer, MaxDamagePlayer, ExpectiminimaxPlayer
 from .clarion_adapter import MindAdapter
 
 
@@ -87,5 +87,6 @@ class Container(containers.DeclarativeContainer):
     benchmark_agents = providers.Dict(
         random=_configure_benchmark_player(config, RandomPlayer),
         max_damage=_configure_benchmark_player(config, MaxDamagePlayer),
-        simple_heuristic=_configure_benchmark_player(config, SimpleHeuristicsPlayer)
+        simple_heuristic=_configure_benchmark_player(config, SimpleHeuristicsPlayer),
+        exp_minmax=_configure_benchmark_player(config, ExpectiminimaxPlayer)
     )

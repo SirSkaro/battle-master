@@ -1,5 +1,5 @@
 pyClarion @ git+https://github.com/cmekik/pyClarion.git@v0.17.1#egg=pyClarion
 poke-env==0.8.0
-poke-engine @ git+https://github.com/SirSkaro/poke-engine.git@ffaed8f
+poke-engine @ git+https://github.com/SirSkaro/poke-engine.git@1465f7e
 dependency-injector==4.41.0
 pytest==7.4.4

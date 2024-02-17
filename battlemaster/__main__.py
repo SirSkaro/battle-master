@@ -20,7 +20,7 @@ def _parse_command_line_args() -> Namespace:
 
     benchmark_parser = subparsers.add_parser('benchmark', help='Run Battle Master against a benchmark agent')
     benchmark_parser.add_argument("agent", type=str, help='Which benchmark agent to use',
-                                  choices=['random', 'max_damage', 'simple_heuristic'])
+                                  choices=['random', 'max_damage', 'simple_heuristic', 'exp_minmax'])
     benchmark_parser.add_argument("num_battles", type=int, help='The number of battles to play')
 
     args = parser.parse_args()
