@@ -1,5 +1,3 @@
-from typing import List
-
 from poke_env.player import Player, BattleOrder
 from poke_env.environment import Battle, Move
 from poke_engine.select_best_move import get_payoff_matrix, pick_safest
@@ -7,7 +5,7 @@ from poke_engine import Battle as BattleSimulation, StateMutator
 from poke_engine.constants import SWITCH_STRING as SWITCH_ACTION
 
 from .clarion_adapter import MindAdapter
-from .poke_engine_adapter import convert_battle
+from .poke_engine_adapter import BattleSimulationAdapter
 
 
 class BattleMasterPlayer(Player):
@@ -61,7 +59,7 @@ class MaxDamagePlayer(Player):
 
 class ExpectiminimaxPlayer(Player):
     def choose_move(self, battle: Battle):
-        simulation = convert_battle(battle)
+        simulation = BattleSimulationAdapter.from_battle(battle)
         action = self._simulate_and_pick_safest_move(simulation)
         if action.startswith(SWITCH_ACTION):
             return self._select_switch(battle, action)
