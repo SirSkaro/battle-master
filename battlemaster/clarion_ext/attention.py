@@ -1,5 +1,5 @@
 from types import MappingProxyType
-from typing import *
+from typing import Hashable, List, Dict, Mapping, Any
 
 import pyClarion as cl
 from pyClarion import nd
@@ -91,9 +91,3 @@ class AttentionFilter(cl.Wrapped[Pt]):
                 attended[symbol] = weight
 
         return attended
-
-
-class MentalSimulation(cl.Process):
-    _serves = cl.ConstructType.chunk
-
-    pass

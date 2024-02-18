@@ -132,5 +132,3 @@ class BattleSimulationAdapter(Simulation):
         simulated.types = [normalize_name(type.name) for type in pokemon.types if type is not None]
 
         return simulated
-
-

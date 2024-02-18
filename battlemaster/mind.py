@@ -5,7 +5,7 @@ import pyClarion as cl
 from pyClarion import chunk, rule, feature, buffer, subsystem, chunks, features
 from poke_env import gen_data
 
-from .clarion_ext import NamedStimuli, AttentionFilter
+from .clarion_ext.attention import NamedStimuli, AttentionFilter
 
 pokemon_database = gen_data.GenData(9)
 
