@@ -5,8 +5,10 @@ from pyClarion import nd
 from poke_env.environment import PokemonType
 from poke_env.data import GenData
 
+_SUPER_EFFECTIVE_THRESHOLD = 1.9
 
-class MoveEfficacies(cl.Process):
+
+class SuperEffectiveMoves(cl.Process):
     _serves = cl.ConstructType.flow_tt
 
     def __init__(self, type_source: cl.Symbol, move_source: cl.Symbol, move_chunks: cl.Chunks):
@@ -21,13 +23,19 @@ class MoveEfficacies(cl.Process):
         defending_type = inputs[self._type_source]
         moves = inputs[self._move_source]
         for move in moves.keys():
-            move_features = self._move_chunks[move].features
-            move_type = [feature for feature in move_features if feature.cid[0][0] == 'type'][0].val
+            move_type = self._get_move_type(move)
             damage_multiplier = self._get_efficacy(move_type, [type.cid for type in defending_type.keys()])
             result[move] = damage_multiplier
 
-        result = nd.threshold(result, th=1.9)
+        result = nd.threshold(result, th=_SUPER_EFFECTIVE_THRESHOLD)
         return result / nd.reduce_max(result)
+
+    def _get_move_type(self, move: cl.chunk):
+        try:
+            move_features = self._move_chunks[move].features
+            return [feature for feature in move_features if feature.cid[0][0] == 'type'][0].val
+        except:
+            raise ValueError(f'chunk {move} does not have a feature with the name "type"')
 
     def _get_efficacy(self, attack_type: str, defending_types: List[str]) -> float:
         attack_type = PokemonType.from_name(attack_type)
