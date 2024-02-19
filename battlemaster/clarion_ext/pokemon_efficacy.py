@@ -1,4 +1,4 @@
-from typing import Mapping, Any, List, Optional
+from typing import Mapping, Any, List
 
 import pyClarion as cl
 from pyClarion import nd
