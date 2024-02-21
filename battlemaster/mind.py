@@ -11,7 +11,9 @@ from .clarion_ext.pokemon_efficacy import SuperEffectiveMoves
 pokemon_database = gen_data.GenData.from_gen(9)
 
 
-def _define_type_chunks(chunk_database: cl.Chunks, rule_database: cl.Rules):
+def _define_type_chunks() -> Tuple[cl.Chunks, cl.Rules]:
+    type_chunks = cl.Chunks()
+    rule_database = cl.Rules()
     types = ['normal', 'fighting', 'flying', 'poison', 'ground', 'rock', 'bug', 'ghost', 'steel', 'fire', 'water',
              'grass', 'electric', 'psychic', 'ice', 'dragon', 'dark', 'fairy']
 
@@ -39,7 +41,7 @@ def _define_type_chunks(chunk_database: cl.Chunks, rule_database: cl.Rules):
     ]
 
     for type in types:
-        chunk_database.define(chunk(type), feature('type', type))
+        type_chunks.define(chunk(type), feature('type', type))
 
     for attacker_index, attacker_type in enumerate(types):
         attack_conclusion = chunk(attacker_type)
@@ -53,6 +55,8 @@ def _define_type_chunks(chunk_database: cl.Chunks, rule_database: cl.Rules):
 
         rule_database.define(attack_rule, attack_conclusion, *attack_conditions)
 
+    return type_chunks, rule_database
+
 
 _camel_case_pattern = re.compile(r'(?<!^)(?=[A-Z])')
 def _to_snake_case(camel_case: str) -> str:
@@ -61,12 +65,13 @@ def _to_snake_case(camel_case: str) -> str:
     return camel_case.replace(' ', '_')
 
 
-def _define_move_chunks(chunk_database: cl.Chunks):
+def _define_move_chunks() -> cl.Chunks:
+    move_chunks = cl.Chunks()
     all_moves = pokemon_database.moves
     for name, move_data in all_moves.items():
         if 'isZ' in move_data:
             continue
-        chunk_database.define(chunk(name),
+        move_chunks.define(chunk(name),
                               feature('move', name),
                               feature('accuracy', 100 if move_data['accuracy'] == True else move_data['accuracy']),
                               feature('base_power', move_data['basePower']),
@@ -74,18 +79,16 @@ def _define_move_chunks(chunk_database: cl.Chunks):
                               feature('priority', move_data['priority']),
                               feature('type', _to_snake_case(move_data['type'])))
 
-
-def _define_move_command_interface() -> cl.Interface:
-    command_features = tuple([cl.feature('move', name) for name, data in pokemon_database.moves.items() if 'isZ' not in data])
-    return cl.Interface(cmds=command_features)
+    return move_chunks
 
 
-def _define_pokemon_chunks(chunk_database: cl.Chunks):
+def _define_pokemon_chunks() -> cl.Chunks:
+    pokemon_chunks = cl.Chunks()
     all_pokemon = pokemon_database.pokedex
     for name, pokemon in all_pokemon.items():
         typing = pokemon['types']
         stats = pokemon['baseStats']
-        chunk_database.define(chunk(name),
+        pokemon_chunks.define(chunk(name),
                               feature('pokemon'),
                               feature('type', typing[0].lower()),
                               feature('type', typing[1].lower() if len(typing) > 1 else None),
@@ -97,25 +100,17 @@ def _define_pokemon_chunks(chunk_database: cl.Chunks):
                               feature('speed', stats['spe']),
                               feature('weight', pokemon['weightkg']))
 
+    return pokemon_chunks
+
 
 def create_agent() -> Tuple[cl.Structure, cl.Construct]:
-    type_chunks = cl.Chunks()
-    move_chunks = cl.Chunks()
-    pokemon_chunks = cl.Chunks()
-    rule_database = cl.Rules()
-
-    _define_type_chunks(type_chunks, rule_database)
-    _define_move_chunks(move_chunks)
-    _define_pokemon_chunks(pokemon_chunks)
+    type_chunks, rule_database = _define_type_chunks()
+    move_chunks = _define_move_chunks()
+    pokemon_chunks = _define_pokemon_chunks()
 
     wm_interface = cl.RegisterArray.Interface(name="wm", slots=1, vops=("super_effective_moves",))
-    choose_move_interface = _define_move_command_interface()
 
-    agent = cl.Structure(name=cl.agent('btlMaster'),
-                             assets=cl.Assets(
-                                working_memory=wm_interface,
-                                choose_move_interface=choose_move_interface)
-                         )
+    agent = cl.Structure(name=cl.agent('btlMaster'))
 
     with agent:
         stimulus = cl.Construct(name=buffer("stimulus"), process=NamedStimuli(['active_opponent_type', 'available_moves']))

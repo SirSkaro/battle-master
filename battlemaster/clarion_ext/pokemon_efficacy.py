@@ -33,7 +33,6 @@ class SuperEffectiveMoves(cl.Process):
         result = nd.threshold(result, th=_SUPER_EFFECTIVE_THRESHOLD, keep_default=True)
         return normalize(result)
 
-
     def _get_efficacy(self, attack_type: str, defending_types: List[str]) -> float:
         attack_type = PokemonType.from_name(attack_type)
         defending_types = (PokemonType.from_name(defending_types[0]),
