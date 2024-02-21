@@ -57,16 +57,24 @@ python -m battlemaster -h
 For `challenge` mode, you must specify the username of the opponent you want Battle Master to challenge upon start up. 
 The program will block until the battle terminates.
 ```shell
-python -m battlemaster challenge "Sir Skaro"
 python -m battlemaster challenge -h #for additional information
+python -m battlemaster challenge "Sir Skaro"
+```
+
+### Ladder
+For `ladder` mode, you must specify the number of battles you want the agent to play on the ranked ladder. 
+The program will block until the agent has finished all battles.
+```shell
+python -m battlemaster ladder -h #for additional information
+python -m battlemaster ladder 5
 ```
 
 ### Benchmark
 `benchmark` mode initiates the specified number of battles against a named baseline agent for evaluation purposes. This baseline agent always picks
 random actions.
 ```shell
-python -m battlemaster benchmark random 100
 python -m battlemaster benchmark -h #for additional information
+python -m battlemaster benchmark random 100
 ```
 
 ## Development/Local Setup
@@ -91,7 +99,10 @@ node pokemon-showdown start --no-security
 Pokemon Showdown will be available at `http://localhost:8000`. 
 
 ## Contributing
-This project is currently for scholastic credit. As such, not contributions will be accepted until after the class finishes (May 2024).
+This project is currently for scholastic credit. Contributing is welcome, however I will need to record what your contributions are.
+
+### Contributions to date
+- godpow - [PR #2](https://github.com/SirSkaro/battle-master/pull/2) - added CLI option to have the agent look for battles on the ranked ladder. 
 
 ## License
 [MIT](https://choosealicense.com/licenses/mit/)
