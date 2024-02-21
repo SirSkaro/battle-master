@@ -39,4 +39,7 @@ def acs_terminus(agent: cl.Structure) -> cl.Construct:
 
 @pytest.fixture
 def pokemon_database() -> GenData:
-    return GenData(9)
+    try:
+        return GenData(9)
+    except ValueError as e:
+        return GenData._gen_data_per_gen[9]

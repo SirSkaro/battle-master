@@ -75,6 +75,7 @@ def test_pokemon_chunks_have_expected_features(expected_chunks: Tuple[str, List[
     (["ghost"], ["ghost", "dark"]),
     (["steel", "flying"], ["electric", "rock", "ice", "fighting", "fire", "ground"])
 ])
+@pytest.mark.skip(reason="No longer applicable. Need to rethink")
 def test_super_effective_association(defending_types, expected_super_effective_types, agent: cl.Structure, stimulus: cl.Construct, nacs_terminus: cl.Construct):
     presented_types = {cl.chunk(defending_type): 1. for defending_type in defending_types}
     stimulus.process.input({'active_opponent_type': presented_types})
@@ -98,7 +99,7 @@ def test_acs_chooses_super_effective_move_from_available_moves(active_opponent_t
     agent.step()
 
     acs_action = acs_terminus.output
-    chosen_move = next(iter(acs_action)).val
+    chosen_move = next(iter(acs_action)).cid
 
     assert chosen_move in acceptable_moves
 

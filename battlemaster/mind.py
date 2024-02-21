@@ -6,8 +6,9 @@ from pyClarion import chunk, rule, feature, buffer, subsystem, chunks, features
 from poke_env import gen_data
 
 from .clarion_ext.attention import NamedStimuli, AttentionFilter
+from .clarion_ext.pokemon_efficacy import SuperEffectiveMoves
 
-pokemon_database = gen_data.GenData(9)
+pokemon_database = gen_data.GenData.from_gen(9)
 
 
 def _define_type_chunks(chunk_database: cl.Chunks, rule_database: cl.Rules):
@@ -107,14 +108,14 @@ def create_agent() -> Tuple[cl.Structure, cl.Construct]:
     _define_move_chunks(move_chunks)
     _define_pokemon_chunks(pokemon_chunks)
 
-    wm_interface = cl.RegisterArray.Interface(name="wm", slots=1, vops=("super_effective_type",))
+    wm_interface = cl.RegisterArray.Interface(name="wm", slots=1, vops=("super_effective_moves",))
     choose_move_interface = _define_move_command_interface()
 
     agent = cl.Structure(name=cl.agent('btlMaster'),
                              assets=cl.Assets(
                                 working_memory=wm_interface,
                                 choose_move_interface=choose_move_interface)
-                             )
+                         )
 
     with agent:
         stimulus = cl.Construct(name=buffer("stimulus"), process=NamedStimuli(['active_opponent_type', 'available_moves']))
@@ -132,27 +133,22 @@ def create_agent() -> Tuple[cl.Structure, cl.Construct]:
                               controller=(subsystem("nacs"), cl.terminus("wm_write")),
                               sources=((subsystem("nacs"), cl.terminus("main")),),
                               interface=wm_interface)
-                          )
+                     )
 
         acs = cl.Structure(name=subsystem("acs"))
 
         with nacs:
-            cl.Construct(name=cl.chunks("in"), process=AttentionFilter(base=cl.MaxNodes(sources=[buffer("stimulus")]), attend_to=['active_opponent_type']))
-            cl.Construct(name=cl.flow_tt("associations"), process=cl.AssociativeRules(source=chunks("in"), rules=nacs.assets.rdb))
-            cl.Construct(name=chunks("out"), process=cl.MaxNodes(sources=[cl.flow_tt("associations")]))
+            cl.Construct(name=cl.chunks("opponent_type_in"), process=AttentionFilter(base=cl.MaxNodes(sources=[buffer("stimulus")]), attend_to=['active_opponent_type']))
+            cl.Construct(name=cl.chunks("available_moves_in"), process=AttentionFilter(base=cl.MaxNodes(sources=[buffer("stimulus")]), attend_to=['available_moves']))
+            cl.Construct(name=cl.flow_tt("super_effective_available_moves"), process=SuperEffectiveMoves(type_source=cl.chunks("opponent_type_in"), move_source=cl.chunks("available_moves_in"), move_chunks=nacs.assets.move_chunks))
+            cl.Construct(name=chunks("out"), process=cl.MaxNodes(sources=[cl.flow_tt("super_effective_available_moves")]))
             cl.Construct(name=cl.terminus("main"), process=cl.ThresholdSelector(source=chunks("out"), threshold=0.1))
-            cl.Construct(name=cl.terminus('wm_write'), process=cl.Constants(cl.nd.NumDict({feature(('wm', ('w', 0)), 'super_effective_type'): 1.0, feature(("wm", ("r", 0)), "read"): 1.0}, default=0.0)))
+            cl.Construct(name=cl.terminus('wm_write'), process=cl.Constants(cl.nd.NumDict({feature(('wm', ('w', 0)), 'super_effective_moves'): 1.0, feature(("wm", ("r", 0)), "read"): 1.0}, default=0.0)))
 
         with acs:
-            cl.Construct(name=cl.flow_in("available_moves"), process=AttentionFilter(base=cl.TopDown(source=buffer("stimulus"), chunks=move_chunks), attend_to=['available_moves']))
-
-            cl.Construct(name=cl.flow_in('wm'), process=cl.TopDown(source=buffer("wm"), chunks=type_chunks))
-            cl.Construct(name=features('type_features'), process=cl.MaxNodes(sources=[cl.flow_in('wm')]))
-            cl.Construct(name=cl.flow_bt('to_move'), process=cl.BottomUp(source=features('type_features'), chunks=move_chunks))
-            cl.Construct(name=cl.flow_tb('to_features'), process=cl.TopDown(source=cl.flow_bt('to_move'), chunks=move_chunks))
-
-            cl.Construct(name=features('move_features'), process=cl.Filtered(base=cl.MaxNodes(sources=[cl.flow_tb('to_features')]), invert=False, controller=cl.flow_in("available_moves")))
-            cl.Construct(name=cl.terminus("choose_move"), process=cl.ActionSelector(source=cl.features("move_features"), temperature=0.00001, interface=agent.assets.choose_move_interface))
+            cl.Construct(name=cl.chunks('wm'), process=cl.MaxNodes(sources=[buffer("wm")]))
+            cl.Construct(name=chunks("out"),process=cl.MaxNodes(sources=[cl.chunks("wm")]))
+            cl.Construct(name=cl.terminus("choose_move"), process=cl.BoltzmannSelector(source=cl.chunks("out"), temperature=0.2, threshold=0.))
 
     return agent, stimulus
 

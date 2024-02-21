@@ -110,4 +110,4 @@ class TestMindAdapter:
 
     @staticmethod
     def _given_chosen_move(acs_terminus, move_name: str):
-        acs_terminus.output = nd.NumDict({cl.feature('move', move_name): 1.0})
+        acs_terminus.output = nd.NumDict({cl.chunk(move_name): 1.0})

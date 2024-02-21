@@ -7,6 +7,7 @@ from battlemaster.clarion_ext.pokemon_efficacy import SuperEffectiveMoves
 type_source = cl.buffer('opponent_type')
 move_source = cl.buffer('available_moves')
 
+
 @pytest.fixture
 def move_chunks() -> cl.Chunks:
     chunks = cl.Chunks()
@@ -20,9 +21,11 @@ def move_chunks() -> cl.Chunks:
 
     return chunks
 
+
 @pytest.fixture
 def process(move_chunks: cl.Chunks) -> SuperEffectiveMoves:
     return SuperEffectiveMoves(type_source, move_source, move_chunks)
+
 
 @pytest.mark.parametrize("opponent_type, expected_moves", [
         (("grass",), ['ember']),

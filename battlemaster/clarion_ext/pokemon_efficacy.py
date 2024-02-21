@@ -5,6 +5,8 @@ from pyClarion import nd
 from poke_env.environment import PokemonType
 from poke_env.data import GenData
 
+from .numdicts_ext import normalize, get_feature_value_by_name
+
 _SUPER_EFFECTIVE_THRESHOLD = 1.9
 
 
@@ -20,22 +22,17 @@ class SuperEffectiveMoves(cl.Process):
 
     def call(self, inputs: Mapping[Any, nd.NumDict]) -> nd.NumDict:
         result = nd.MutableNumDict(default=0.0)
-        defending_type = inputs[self._type_source]
-        moves = inputs[self._move_source]
+        defending_type = inputs[cl.expand_address(self.client, self._type_source)]
+        moves = inputs[cl.expand_address(self.client, self._move_source)]
+
         for move in moves.keys():
-            move_type = self._get_move_type(move)
+            move_type = get_feature_value_by_name('type', move, self._move_chunks)
             damage_multiplier = self._get_efficacy(move_type, [type.cid for type in defending_type.keys()])
             result[move] = damage_multiplier
 
-        result = nd.threshold(result, th=_SUPER_EFFECTIVE_THRESHOLD)
-        return result / nd.reduce_max(result)
+        result = nd.threshold(result, th=_SUPER_EFFECTIVE_THRESHOLD, keep_default=True)
+        return normalize(result)
 
-    def _get_move_type(self, move: cl.chunk):
-        try:
-            move_features = self._move_chunks[move].features
-            return [feature for feature in move_features if feature.cid[0][0] == 'type'][0].val
-        except:
-            raise ValueError(f'chunk {move} does not have a feature with the name "type"')
 
     def _get_efficacy(self, attack_type: str, defending_types: List[str]) -> float:
         attack_type = PokemonType.from_name(attack_type)
