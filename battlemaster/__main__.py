@@ -23,7 +23,6 @@ def _parse_command_line_args() -> Namespace:
                                   choices=['random', 'max_damage', 'simple_heuristic', 'exp_minmax'])
     benchmark_parser.add_argument("num_battles", type=int, help='The number of battles to play')
 
-    # Adding ladder mode
     ladder_parser = subparsers.add_parser('ladder', help='Play against opponents on the ladder')
     ladder_parser.add_argument("num_games", type=int, help='The number of games to play on the ladder')
 
