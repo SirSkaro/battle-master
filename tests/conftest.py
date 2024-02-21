@@ -28,8 +28,8 @@ def nacs(agent: cl.Structure) -> cl.Structure:
 
 
 @pytest.fixture
-def nacs_terminus(nacs: cl.Structure) -> cl.Construct:
-    return nacs[cl.terminus("main")]
+def working_memory(agent: cl.Structure) -> cl.Construct:
+    return agent[cl.buffer("wm")]
 
 
 @pytest.fixture

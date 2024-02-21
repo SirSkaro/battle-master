@@ -59,7 +59,7 @@ def test_pokemon_chunks_populated(pokemon_chunks: cl.Chunks, pokemon_database: G
     ('abra', [("type", "psychic"), ("type", None), ("hp", 25), ("attack", 20), ("defense", 15), ("special_attack", 105),
               ("special_defense", 55), ("speed", 90), ("weight", 19.5)]),
     ('diancie', [("type", "fairy"), ("type", "rock"), ("hp", 50), ("attack", 100), ("defense", 150),
-                ("special_attack", 100), ("special_defense", 150), ("speed", 50), ("weight", 8.8)]),
+                 ("special_attack", 100), ("special_defense", 150), ("speed", 50), ("weight", 8.8)]),
 ])
 def test_pokemon_chunks_have_expected_features(expected_chunks: Tuple[str, List[Tuple[str, any]]], pokemon_chunks: cl.Chunks):
     chunk_name, features = expected_chunks
@@ -70,26 +70,27 @@ def test_pokemon_chunks_have_expected_features(expected_chunks: Tuple[str, List[
         assert cl.feature(feature[0], feature[1]) in pokemon_chunk.features
 
 
-@pytest.mark.parametrize("defending_types, expected_super_effective_types", [
-    (["normal"], ["fighting"]),
-    (["ghost"], ["ghost", "dark"]),
-    (["steel", "flying"], ["electric", "rock", "ice", "fighting", "fire", "ground"])
+@pytest.mark.parametrize("active_opponent_type, available_moves, acceptable_moves", [
+    (["rock", "fire"], ["hydropump", "earthquake", "fireblast", "playrough"], ["hydropump", "earthquake"]),
+    (["psychic", "dark"], ["uturn", "playrough", "doubleedge"], ["uturn", "playrough"]),
+    (["steel", "flying"], ["thunder", "stoneedge", "sludge", "gigadrain"], ["thunder"])
 ])
-@pytest.mark.skip(reason="No longer applicable. Need to rethink")
-def test_super_effective_association(defending_types, expected_super_effective_types, agent: cl.Structure, stimulus: cl.Construct, nacs_terminus: cl.Construct):
-    presented_types = {cl.chunk(defending_type): 1. for defending_type in defending_types}
-    stimulus.process.input({'active_opponent_type': presented_types})
+def test_writes_super_effective_moves_to_working_memory(active_opponent_type: List[str], available_moves: List[str], acceptable_moves: List[str], agent: cl.Structure, stimulus: cl.Construct, working_memory: cl.Construct):
+    stimulus.process.input({
+        'active_opponent_type': {cl.chunk(defending_type): 1. for defending_type in active_opponent_type},
+        'available_moves': {cl.chunk(name): 1. for name in available_moves}
+    })
     agent.step()
-    nacs_output = nacs_terminus.output
+    working_memory_contents = working_memory.output
 
-    super_effective_types = [type_chunk.cid for type_chunk, weight in iter(nacs_output.items())]
-    assert sorted(expected_super_effective_types) == sorted(super_effective_types)
+    super_effective_moves = [type_chunk.cid for type_chunk, weight in iter(working_memory_contents.items())]
+    assert sorted(acceptable_moves) == sorted(super_effective_moves)
 
 
 @pytest.mark.parametrize("active_opponent_type, available_moves, acceptable_moves", [
     (["normal"], ["tackle", "doublekick", "leer", "mudslap"], ["doublekick"]),
     (["ghost"], ["knockoff", "sludgewave", "doubleedge"], ["knockoff"]),
-    (["steel", "flying"], ["thunder", "stoneedge", "sludge", "gigadrain"], ["thunder", "stoneedge"])
+    (["steel", "flying"], ["thunder", "stoneedge", "sludge", "gigadrain"], ["thunder"])
 ])
 def test_acs_chooses_super_effective_move_from_available_moves(active_opponent_type: List[str], available_moves: List[str], acceptable_moves: List[str], agent: cl.Structure, stimulus: cl.Construct, acs_terminus: cl.Construct):
     stimulus.process.input({

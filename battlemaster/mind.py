@@ -147,7 +147,7 @@ def create_agent() -> Tuple[cl.Structure, cl.Construct]:
 
         with acs:
             cl.Construct(name=cl.chunks('wm'), process=cl.MaxNodes(sources=[buffer("wm")]))
-            cl.Construct(name=chunks("out"),process=cl.MaxNodes(sources=[cl.chunks("wm")]))
+            cl.Construct(name=chunks("out"), process=cl.MaxNodes(sources=[cl.chunks("wm")]))
             cl.Construct(name=cl.terminus("choose_move"), process=cl.BoltzmannSelector(source=cl.chunks("out"), temperature=0.2, threshold=0.))
 
     return agent, stimulus
