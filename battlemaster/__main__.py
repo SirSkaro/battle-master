@@ -23,6 +23,10 @@ def _parse_command_line_args() -> Namespace:
                                   choices=['random', 'max_damage', 'simple_heuristic', 'exp_minmax'])
     benchmark_parser.add_argument("num_battles", type=int, help='The number of battles to play')
 
+    # Adding ladder mode
+    ladder_parser = subparsers.add_parser('ladder', help='Play against opponents on the ladder')
+    ladder_parser.add_argument("num_games", type=int, help='The number of games to play on the ladder')
+
     args = parser.parse_args()
     return args
 
@@ -45,6 +49,13 @@ async def benchmark(number_battles: int, benchmark_agent: str,
     logger.info(f'Agent won {agent.n_won_battles} / {number_battles} battles {agent.n_won_battles/number_battles}%')
 
 
+@inject
+async def play_ladder(num_games: int, agent: Player = Provide[Container.player]):
+    logger = logging.getLogger(f"{__name__}")
+    logger.info(f"Playing {num_games} games on the ladder as {agent.username}")
+    await agent.ladder(num_games)
+
+
 if __name__ == "__main__":
     cli_args = _parse_command_line_args()
 
@@ -53,6 +64,8 @@ if __name__ == "__main__":
     ioc_container.wire(modules=[__name__])
 
     if cli_args.mode == 'challenge':
-        asyncio.get_event_loop().run_until_complete(challenge_opponent(cli_args.opponent_username))
+        asyncio.run(challenge_opponent(cli_args.opponent_username))
     elif cli_args.mode == 'benchmark':
-        asyncio.get_event_loop().run_until_complete(benchmark(cli_args.num_battles, cli_args.agent))
+        asyncio.run(benchmark(cli_args.num_battles, cli_args.agent))
+    elif cli_args.mode == 'ladder':
+        asyncio.run(play_ladder(cli_args.num_games))
