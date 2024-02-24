@@ -1,4 +1,4 @@
-from unittest.mock import Mock, MagicMock
+from unittest.mock import Mock
 from typing import Optional, List
 
 import pyClarion as cl
@@ -6,7 +6,7 @@ from pyClarion import nd
 import pytest
 from poke_env.environment import Battle, Pokemon, PokemonType, Move
 
-from battlemaster.clarion_adapter import MindAdapter, BattleConcept
+from battlemaster.adapters.clarion_adapter import MindAdapter, BattleConcept
 
 
 @pytest.fixture

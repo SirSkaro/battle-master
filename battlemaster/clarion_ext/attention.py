@@ -31,7 +31,7 @@ class NamedStimuli(cl.Process):
     """
     Because a single stimulus buffer can only communicate chunks/features without any context, it's impossible to
     explicitly model the game state (e.g., communicate which is the active Pokemon vs benched Pokemon). This class is an
-    adapter to name certain stimuli so that different parts of the game state can be explicitly communicated.
+    adapters to name certain stimuli so that different parts of the game state can be explicitly communicated.
     """
 
     _serves = cl.ConstructType.buffer

@@ -4,8 +4,8 @@ from poke_engine.select_best_move import get_payoff_matrix, pick_safest
 from poke_engine import Battle as BattleSimulation, StateMutator
 from poke_engine.constants import SWITCH_STRING as SWITCH_ACTION
 
-from .clarion_adapter import MindAdapter
-from .poke_engine_adapter import BattleSimulationAdapter
+from battlemaster.adapters.clarion_adapter import MindAdapter
+from battlemaster.adapters.poke_engine_adapter import BattleSimulationAdapter
 
 
 class BattleMasterPlayer(Player):

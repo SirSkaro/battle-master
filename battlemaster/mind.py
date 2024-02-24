@@ -124,10 +124,10 @@ def create_agent() -> Tuple[cl.Structure, cl.Construct]:
                             )
 
         cl.Construct(name=buffer("wm"),
-                          process=cl.RegisterArray(
-                              controller=(subsystem("nacs"), cl.terminus("wm_write")),
-                              sources=((subsystem("nacs"), cl.terminus("main")),),
-                              interface=wm_interface)
+                     process=cl.RegisterArray(
+                        controller=(subsystem("nacs"), cl.terminus("wm_write")),
+                        sources=((subsystem("nacs"), cl.terminus("main")),),
+                        interface=wm_interface)
                      )
 
         acs = cl.Structure(name=subsystem("acs"))

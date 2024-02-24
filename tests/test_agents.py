@@ -6,7 +6,7 @@ from battlemaster.agents import BattleMasterPlayer
 from poke_env.environment import Battle, Move, Pokemon, PokemonType
 import pyClarion as cl
 
-from battlemaster.clarion_adapter import MindAdapter
+from battlemaster.adapters.clarion_adapter import MindAdapter
 
 
 def _given_move(name: str) -> Move:
