@@ -7,7 +7,7 @@ from poke_env.player import RandomPlayer, Player, SimpleHeuristicsPlayer
 
 from .mind import create_agent
 from .agents import BattleMasterPlayer, MaxDamagePlayer, ExpectiminimaxPlayer
-from .clarion_adapter import MindAdapter
+from .adapters.clarion_adapter import MindAdapter
 
 
 class PlayerSingleton(providers.Provider):

@@ -7,10 +7,10 @@ from poke_env.data import GenData
 
 from .numdicts_ext import normalize, get_feature_value_by_name
 
-_SUPER_EFFECTIVE_THRESHOLD = 1.9
+_EFFECTIVE_THRESHOLD = 0.9
 
 
-class SuperEffectiveMoves(cl.Process):
+class EffectiveMoves(cl.Process):
     _serves = cl.ConstructType.flow_tt
 
     def __init__(self, type_source: cl.Symbol, move_source: cl.Symbol, move_chunks: cl.Chunks):
@@ -30,7 +30,7 @@ class SuperEffectiveMoves(cl.Process):
             damage_multiplier = self._get_efficacy(move_type, [type.cid for type in defending_type.keys()])
             result[move] = damage_multiplier
 
-        result = nd.threshold(result, th=_SUPER_EFFECTIVE_THRESHOLD, keep_default=True)
+        result = nd.threshold(result, th=_EFFECTIVE_THRESHOLD, keep_default=True)
         return normalize(result)
 
     def _get_efficacy(self, attack_type: str, defending_types: List[str]) -> float:

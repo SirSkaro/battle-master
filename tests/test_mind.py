@@ -72,10 +72,10 @@ def test_pokemon_chunks_have_expected_features(expected_chunks: Tuple[str, List[
 
 @pytest.mark.parametrize("active_opponent_type, available_moves, acceptable_moves", [
     (["rock", "fire"], ["hydropump", "earthquake", "fireblast", "playrough"], ["hydropump", "earthquake"]),
-    (["psychic", "dark"], ["uturn", "playrough", "doubleedge"], ["uturn", "playrough"]),
-    (["steel", "flying"], ["thunder", "stoneedge", "sludge", "gigadrain"], ["thunder"])
+    (["psychic", "dark"], ["uturn", "playrough", "doubleedge"], ["uturn", "playrough", "doubleedge"]),
+    (["steel", "flying"], ["thunder", "stoneedge", "sludge", "gigadrain"], ["thunder", "stoneedge"])
 ])
-def test_writes_super_effective_moves_to_working_memory(active_opponent_type: List[str], available_moves: List[str], acceptable_moves: List[str], agent: cl.Structure, stimulus: cl.Construct, working_memory: cl.Construct):
+def test_writes_effective_moves_to_working_memory(active_opponent_type: List[str], available_moves: List[str], acceptable_moves: List[str], agent: cl.Structure, stimulus: cl.Construct, working_memory: cl.Construct):
     stimulus.process.input({
         'active_opponent_type': {cl.chunk(defending_type): 1. for defending_type in active_opponent_type},
         'available_moves': {cl.chunk(name): 1. for name in available_moves}
