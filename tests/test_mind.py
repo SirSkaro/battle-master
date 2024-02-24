@@ -90,7 +90,7 @@ def test_writes_effective_moves_to_working_memory(active_opponent_type: List[str
 @pytest.mark.parametrize("active_opponent_type, available_moves, acceptable_moves", [
     (["normal"], ["tackle", "doublekick", "leer", "mudslap"], ["doublekick"]),
     (["ghost"], ["knockoff", "sludgewave", "doubleedge"], ["knockoff"]),
-    (["steel", "flying"], ["thunder", "stoneedge", "sludge", "gigadrain"], ["thunder"])
+    (["steel", "flying"], ["thunder", "stoneedge", "sludge", "gigadrain"], ["thunder", "stoneedge"])
 ])
 def test_acs_chooses_super_effective_move_from_available_moves(active_opponent_type: List[str], available_moves: List[str], acceptable_moves: List[str], agent: cl.Structure, stimulus: cl.Construct, acs_terminus: cl.Construct):
     stimulus.process.input({

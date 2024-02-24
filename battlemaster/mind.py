@@ -7,6 +7,7 @@ from poke_env import gen_data
 
 from .clarion_ext.attention import NamedStimuli, AttentionFilter
 from .clarion_ext.pokemon_efficacy import EffectiveMoves
+from .adapters.clarion_adapter import BattleConcept
 
 pokemon_database = gen_data.GenData.from_gen(9)
 
@@ -113,7 +114,13 @@ def create_agent() -> Tuple[cl.Structure, cl.Construct]:
     agent = cl.Structure(name=cl.agent('btlMaster'))
 
     with agent:
-        stimulus = cl.Construct(name=buffer("stimulus"), process=NamedStimuli(['active_opponent_type', 'available_moves']))
+        stimulus = cl.Construct(
+            name=buffer("stimulus"),
+            process=NamedStimuli([
+                BattleConcept.ACTIVE_OPPONENT_TYPE.value,
+                BattleConcept.AVAILABLE_MOVES.value
+            ])
+        )
 
         nacs = cl.Structure(name=subsystem("nacs"),
                             assets=cl.Assets(
