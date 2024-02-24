@@ -42,7 +42,7 @@ class TestMindAdapter:
 
         perception = mind_adapter.perceive(battle)
 
-        for concept in BattleConcept:
+        for concept in [BattleConcept.ACTIVE_OPPONENT_TYPE, BattleConcept.AVAILABLE_MOVES]:
             assert concept.value in perception
 
     @pytest.mark.parametrize("active_opponent_types", [

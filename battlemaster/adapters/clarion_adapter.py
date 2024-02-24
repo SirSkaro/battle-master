@@ -9,6 +9,10 @@ from poke_env.environment import Battle
 class BattleConcept(str, Enum):
     ACTIVE_OPPONENT_TYPE = 'active_opponent_type'
     AVAILABLE_MOVES = 'available_moves'
+    PLAYERS = 'players'
+    ACTIVE_POKEMON = 'active_pokemon'
+    TEAM_SLOT_1 = 'team_slot_1'
+    OPPONENT_ACTIVE_POKEMON = 'opponent_active_pokemon'
 
     def __str__(self) -> str:
         return self.value

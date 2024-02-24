@@ -91,3 +91,4 @@ class AttentionFilter(cl.Wrapped[Pt]):
                 attended[symbol] = weight
 
         return attended
+

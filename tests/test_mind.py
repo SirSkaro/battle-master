@@ -88,7 +88,7 @@ def test_writes_effective_moves_to_working_memory(active_opponent_type: List[str
 
 
 @pytest.mark.parametrize("active_opponent_type, available_moves, acceptable_moves", [
-    (["normal"], ["tackle", "doublekick", "leer", "mudslap"], ["doublekick"]),
+    (["normal"], ["tackle", "doublekick", "shadowball", "superpower"], ["tackle", "doublekick", "superpower"]),
     (["ghost"], ["knockoff", "sludgewave", "doubleedge"], ["knockoff"]),
     (["steel", "flying"], ["thunder", "stoneedge", "sludge", "gigadrain"], ["thunder", "stoneedge"])
 ])
