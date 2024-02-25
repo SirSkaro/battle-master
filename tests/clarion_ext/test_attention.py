@@ -5,7 +5,7 @@ import pytest
 import pyClarion as cl
 from pyClarion import nd
 
-from battlemaster.clarion_ext.attention import NamedStimuli, AttentionFilter, GroupedChunk
+from battlemaster.clarion_ext.attention import NamedStimuli, AttentionFilter, GroupedChunk, GroupedChunkInstance
 
 
 class TestGroupedChunk:
@@ -19,6 +19,23 @@ class TestGroupedChunk:
     def test_equality_with_normal_chunk(self):
         chunk = cl.chunk('foo')
         grouped_chunk = GroupedChunk.from_chunk(chunk, 'some group')
+
+        assert chunk == grouped_chunk
+
+
+class TestGroupedChunkInstance:
+    def test_constructing(self):
+        chunk = cl.chunk('foo')
+        features = [cl.feature('feature')]
+        chunk = GroupedChunkInstance.from_chunk(chunk, 'group', features)
+
+        assert chunk.cid == chunk.cid
+        assert chunk.group == 'group'
+        assert chunk.features == features
+
+    def test_equality_with_normal_chunk(self):
+        chunk = cl.chunk('foo')
+        grouped_chunk = GroupedChunkInstance.from_chunk(chunk, 'some group', [])
 
         assert chunk == grouped_chunk
 

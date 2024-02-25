@@ -20,11 +20,32 @@ class GroupedChunk(cl.chunk):
 
     def __repr__(self):
         cls_name = type(self).__name__
-        return "{}({}|{})".format(cls_name, repr(self.cid), self.group)
+        return "{}({}|{})".format(cls_name, self.cid, self.group)
 
     @staticmethod
     def from_chunk(other: cl.chunk, group: str):
         return GroupedChunk(other.cid, group)
+
+
+class GroupedChunkInstance(GroupedChunk):
+    """A chunk symbol with features associated under it"""
+    __slots__ = ('_args', 'group', 'features')
+    features: List[cl.feature]
+
+    def __init__(self, cid: Hashable, group: str, features: List[cl.feature]) -> None:
+        self.features = features
+        super().__init__(cid, group)
+
+    def __setattr__(self, key, value):
+        object.__setattr__(self, key, value)
+
+    def __repr__(self):
+        cls_name = type(self).__name__
+        return "{}({}|{}){}".format(cls_name, self.cid, self.group, self.features)
+
+    @staticmethod
+    def from_chunk(other: cl.chunk, group: str, features: List[cl.feature]):
+        return GroupedChunkInstance(other.cid, group, features)
 
 
 class NamedStimuli(cl.Process):
