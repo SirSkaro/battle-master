@@ -4,6 +4,7 @@ import pytest
 import pyClarion as cl
 from poke_env.data import GenData
 
+from battlemaster.clarion_ext.attention import GroupedStimulusInput
 
 @pytest.fixture
 def type_chunks(nacs: cl.Structure) -> cl.Chunks:
@@ -76,10 +77,13 @@ def test_pokemon_chunks_have_expected_features(expected_chunks: Tuple[str, List[
     (["steel", "flying"], ["thunder", "stoneedge", "sludge", "gigadrain"], ["thunder", "stoneedge"])
 ])
 def test_writes_effective_moves_to_working_memory(active_opponent_type: List[str], available_moves: List[str], acceptable_moves: List[str], agent: cl.Structure, stimulus: cl.Construct, working_memory: cl.Construct):
-    stimulus.process.input({
-        'active_opponent_type': {cl.chunk(defending_type): 1. for defending_type in active_opponent_type},
-        'available_moves': {cl.chunk(name): 1. for name in available_moves}
-    })
+    perception = GroupedStimulusInput(['active_opponent_type', 'available_moves'])
+    for defending_type in active_opponent_type:
+        perception.add_chunk_to_group(cl.chunk(defending_type), 'active_opponent_type')
+    for name in available_moves:
+        perception.add_chunk_to_group(cl.chunk(name), 'available_moves')
+
+    stimulus.process.input(perception)
     agent.step()
     working_memory_contents = working_memory.output
 
@@ -92,11 +96,14 @@ def test_writes_effective_moves_to_working_memory(active_opponent_type: List[str
     (["ghost"], ["knockoff", "sludgewave", "doubleedge"], ["knockoff"]),
     (["steel", "flying"], ["thunder", "stoneedge", "sludge", "gigadrain"], ["thunder", "stoneedge"])
 ])
-def test_acs_chooses_super_effective_move_from_available_moves(active_opponent_type: List[str], available_moves: List[str], acceptable_moves: List[str], agent: cl.Structure, stimulus: cl.Construct, acs_terminus: cl.Construct):
-    stimulus.process.input({
-        'active_opponent_type': {cl.chunk(defending_type): 1. for defending_type in active_opponent_type},
-        'available_moves': {cl.chunk(name): 1. for name in available_moves}
-    })
+def test_acs_chooses_effective_move_from_available_moves(active_opponent_type: List[str], available_moves: List[str], acceptable_moves: List[str], agent: cl.Structure, stimulus: cl.Construct, acs_terminus: cl.Construct):
+    perception = GroupedStimulusInput(['active_opponent_type', 'available_moves'])
+    for defending_type in active_opponent_type:
+        perception.add_chunk_to_group(cl.chunk(defending_type), 'active_opponent_type')
+    for name in available_moves:
+        perception.add_chunk_to_group(cl.chunk(name), 'available_moves')
+
+    stimulus.process.input(perception)
     agent.step()
 
     acs_action = acs_terminus.output

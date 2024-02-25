@@ -5,6 +5,8 @@ import pyClarion as cl
 from pyClarion import nd
 from poke_env.environment import Battle
 
+from ..clarion_ext.attention import GroupedStimulusInput
+
 
 class BattleConcept(str, Enum):
     ACTIVE_OPPONENT_TYPE = 'active_opponent_type'
@@ -25,15 +27,19 @@ class MindAdapter:
         self._stimulus = stimulus
 
     def perceive(self, battle: Battle) -> Mapping[str, nd.NumDict]:
-        perception = {
-            BattleConcept.ACTIVE_OPPONENT_TYPE.value: nd.NumDict({cl.chunk(typing.name.lower()): 1.0 for typing in battle.opponent_active_pokemon.types if typing is not None}),
-            BattleConcept.AVAILABLE_MOVES.value: nd.NumDict({cl.chunk(move.id): 1.0 for move in battle.available_moves})
-        }
+        perception = GroupedStimulusInput([BattleConcept.ACTIVE_OPPONENT_TYPE.value, BattleConcept.AVAILABLE_MOVES.value])
+        for typing in battle.opponent_active_pokemon.types:
+            if typing is None:
+                continue
+            perception.add_chunk_to_group(cl.chunk(typing.name.lower()), BattleConcept.ACTIVE_OPPONENT_TYPE.value)
+
+        for move in battle.available_moves:
+            perception.add_chunk_to_group(cl.chunk(move.id), BattleConcept.ACTIVE_OPPONENT_TYPE.value)
 
         self._stimulus.process.input(perception)
         self._mind.step()
 
-        return perception
+        return perception.to_stimulus()
 
     def choose_action(self) -> Optional[str]:
         acs_terminus = self._mind[cl.subsystem('acs')][cl.terminus("choose_move")]

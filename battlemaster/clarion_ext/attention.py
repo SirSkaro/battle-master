@@ -81,18 +81,16 @@ class NamedStimuli(cl.Process):
     """
 
     _serves = cl.ConstructType.buffer
+    _stimuli: Dict[str, cl.Stimulus]
 
-    def __init__(self, named_stimuli: List[str]) -> None:
+    def __init__(self) -> None:
         super().__init__()
-        self._stimuli: Dict[str, cl.Stimulus] = {name: cl.Stimulus() for name in named_stimuli}
 
-    def input(self, named_stimuli: Dict[str, nd.NumDict]) -> None:
-        for name, numdict in named_stimuli.items():
-            if name not in self._stimuli:
-                raise ValueError(f'There is no named stimulus called {name}')
+    def input(self, named_stimuli: GroupedStimulusInput) -> None:
+        self._stimuli = {name: cl.Stimulus() for name in named_stimuli.groups}
 
-            grouped_chunks = self._to_grouped_chunks(name, numdict)
-            self._stimuli[name].input(grouped_chunks)
+        for name, stimulus in named_stimuli.to_stimulus().items():
+            self._stimuli[name].input(stimulus)
 
     def call(self, inputs: Mapping[Any, nd.NumDict]) -> nd.NumDict:
         result = nd.MutableNumDict(default=0.0)
@@ -100,15 +98,6 @@ class NamedStimuli(cl.Process):
             stimulus_output = stimulus.call(nd.NumDict())
             for symbol, weight in stimulus_output.items():
                 result[symbol] = weight
-
-        return result
-
-    @staticmethod
-    def _to_grouped_chunks(name: str, numdict: nd.NumDict) -> nd.NumDict:
-        result = nd.MutableNumDict(default=0.0)
-        for chunk_symbol, weight in numdict.items():
-            new_symbol = GroupedChunk.from_chunk(chunk_symbol, name)
-            result[new_symbol] = weight
 
         return result
 

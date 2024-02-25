@@ -72,65 +72,33 @@ class TestGroupedStimulusInput:
         return next(iter(input._inputs['foo'].keys()))
 
 
-class TestNamedStimuli:
-    def test_creates_stimulus_per_name(self):
-        named_stimuli = ['foo', 'bar', 'baz']
-        result = NamedStimuli(named_stimuli)
-
-        for name in named_stimuli:
-            assert name in result._stimuli
-            assert isinstance(result._stimuli[name], cl.Stimulus)
-
-    def test_input_unknown_name(self):
-        stimuli = NamedStimuli(['foo'])
-
-        with pytest.raises(ValueError):
-            stimuli.input({'bar': nd.NumDict({'chunk': 1.0})})
-
+class TestNamedStimuliComponentTest:
     def test_input_adds_to_individual_stimuli(self):
-        named_stimuli = ['foo', 'bar']
-        stimuli = NamedStimuli(named_stimuli)
-        input = {
-            'foo': nd.NumDict({cl.chunk('foo'): 1.}),
-            'bar': nd.NumDict({cl.chunk('bar'): 1.})
-        }
+        stimuli = NamedStimuli()
+        named_stimuli = GroupedStimulusInput(['foo', 'bar'])
+        named_stimuli.add_chunk_to_group(cl.chunk('foo'), 'foo')
+        named_stimuli.add_chunk_to_group(cl.chunk('bar'), 'bar')
 
-        stimuli.input(input)
+        stimuli.input(named_stimuli)
 
-        for name in named_stimuli:
+        for name in named_stimuli.groups:
             expected_chunk = cl.chunk(name)
             stimulus = stimuli._stimuli[name].stimulus
             assert expected_chunk in stimulus
-            assert stimulus[expected_chunk] == input[name][expected_chunk]
-
-    def test_input_converts_to_groupchunk(self):
-        stimuli = NamedStimuli(['foo'])
-        input = {
-            'foo': nd.NumDict({cl.chunk('bar'): 1.})
-        }
-
-        stimuli.input(input)
-
-        keys = stimuli._stimuli['foo'].stimulus.keys()
-        groupchunk = next(iter(keys))
-
-        assert isinstance(groupchunk, GroupedChunk)
-        assert groupchunk.group == 'foo'
-        assert groupchunk.cid == 'bar'
 
     def test_call_flattens_stimuli(self):
         named_stimuli = ['foo', 'bar', 'baz']
-        stimuli = NamedStimuli(named_stimuli)
-        input = {
-            'foo': nd.NumDict({cl.chunk('foo'): 1.}),
-            'bar': nd.NumDict({cl.chunk('bar'): 2.}),
-            'baz': nd.NumDict({cl.chunk('baz'): 3.}),
-        }
+        stimuli = NamedStimuli()
+        named_stimuli = GroupedStimulusInput(named_stimuli)
+        named_stimuli.add_chunk_to_group(cl.chunk('foo'), 'foo', 1.)
+        named_stimuli.add_chunk_to_group(cl.chunk('bar'), 'bar', 2.)
+        named_stimuli.add_chunk_to_group(cl.chunk('baz'), 'baz', 3.)
 
-        stimuli.input(input)
+        stimuli.input(named_stimuli)
         result = stimuli.call({})
+        input = named_stimuli.to_stimulus()
 
-        for name in named_stimuli:
+        for name in named_stimuli.groups:
             expected_chunk = cl.chunk(name)
             assert expected_chunk in result
             assert result[expected_chunk] == input[name][expected_chunk]

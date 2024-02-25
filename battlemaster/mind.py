@@ -116,10 +116,7 @@ def create_agent() -> Tuple[cl.Structure, cl.Construct]:
     with agent:
         stimulus = cl.Construct(
             name=buffer("stimulus"),
-            process=NamedStimuli([
-                BattleConcept.ACTIVE_OPPONENT_TYPE.value,
-                BattleConcept.AVAILABLE_MOVES.value
-            ])
+            process=NamedStimuli()
         )
 
         nacs = cl.Structure(name=subsystem("nacs"),
