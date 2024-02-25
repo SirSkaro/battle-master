@@ -65,12 +65,13 @@ class TestMindAdapter:
     ])
     def test_available_moves_in_perception(self, mind_adapter: MindAdapter, battle, available_moves: List[str]):
         battle.opponent_active_pokemon = self._given_opposing_pokemon("some type")
-        battle.available_moves = []
+        battle.available_moves = [self._given_move(move) for move in available_moves]
 
         perception = mind_adapter.perceive(battle)
 
         perceived_moves = perception[BattleConcept.AVAILABLE_MOVES]
-        for move_name in perceived_moves:
+        assert len(available_moves) == len(perceived_moves)
+        for move_name in available_moves:
             assert cl.chunk(move_name) in perceived_moves
 
     def test_no_move_chosen(self, mind_adapter: MindAdapter, acs_terminus):

@@ -22,6 +22,13 @@ class TestGroupedChunk:
 
         assert chunk == grouped_chunk
 
+    def test_membership_with_normal_chunk(self):
+        chunk = cl.chunk('foo')
+        grouped_chunk = GroupedChunk.from_chunk(chunk, 'some group')
+
+        assert grouped_chunk in {chunk: 1.}
+        assert chunk in {grouped_chunk: 1.}
+
 
 class TestGroupedChunkInstance:
     def test_constructing(self):
