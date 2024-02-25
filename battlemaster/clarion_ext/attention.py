@@ -38,19 +38,19 @@ class NamedStimuli(cl.Process):
 
     def __init__(self, named_stimuli: List[str]) -> None:
         super().__init__()
-        self.stimuli: Dict[str, cl.Stimulus] = {name: cl.Stimulus() for name in named_stimuli}
+        self._stimuli: Dict[str, cl.Stimulus] = {name: cl.Stimulus() for name in named_stimuli}
 
     def input(self, named_stimuli: Dict[str, nd.NumDict]) -> None:
         for name, numdict in named_stimuli.items():
-            if name not in self.stimuli:
+            if name not in self._stimuli:
                 raise ValueError(f'There is no named stimulus called {name}')
 
             grouped_chunks = self._to_grouped_chunks(name, numdict)
-            self.stimuli[name].input(grouped_chunks)
+            self._stimuli[name].input(grouped_chunks)
 
     def call(self, inputs: Mapping[Any, nd.NumDict]) -> nd.NumDict:
         result = nd.MutableNumDict(default=0.0)
-        for stimulus in self.stimuli.values():
+        for stimulus in self._stimuli.values():
             stimulus_output = stimulus.call(nd.NumDict())
             for symbol, weight in stimulus_output.items():
                 result[symbol] = weight
