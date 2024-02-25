@@ -5,7 +5,7 @@ import pytest
 import pyClarion as cl
 from pyClarion import nd
 
-from battlemaster.clarion_ext.attention import NamedStimuli, AttentionFilter, GroupedChunk, GroupedChunkInstance
+from battlemaster.clarion_ext.attention import NamedStimuli, AttentionFilter, GroupedChunk, GroupedChunkInstance, GroupedStimulusInput
 
 
 class TestGroupedChunk:
@@ -38,6 +38,38 @@ class TestGroupedChunkInstance:
         grouped_chunk = GroupedChunkInstance.from_chunk(chunk, 'some group', [])
 
         assert chunk == grouped_chunk
+
+
+class TestGroupedStimulusInput:
+    def test_add_chunk(self):
+        input = GroupedStimulusInput(['foo'])
+        input.add_chunk_to_group(cl.chunk('bar'), 'foo')
+
+        assert cl.chunk('bar') in input._inputs['foo']
+        assert isinstance(self._get_first_chunk(input), GroupedChunk)
+
+    def test_add_chunk_nonexistant_group(self):
+        input = GroupedStimulusInput(['foo'])
+
+        with pytest.raises(ValueError):
+            input.add_chunk_to_group(cl.chunk('bar'), 'does not exist')
+
+    def test_add_chunk_instance(self):
+        input = GroupedStimulusInput(['foo'])
+        input.add_chunk_instance_to_group(cl.chunk('bar'), 'foo', [cl.feature('baz')])
+
+        assert cl.chunk('bar') in input._inputs['foo']
+        assert isinstance(self._get_first_chunk(input), GroupedChunkInstance)
+
+    def test_add_chunk_instance_nonexistant_group(self):
+        input = GroupedStimulusInput(['foo'])
+
+        with pytest.raises(ValueError):
+            input.add_chunk_instance_to_group(cl.chunk('bar'), 'does not exist', [])
+
+    @staticmethod
+    def _get_first_chunk(input: GroupedStimulusInput) -> cl.chunk:
+        return next(iter(input._inputs['foo'].keys()))
 
 
 class TestNamedStimuli:

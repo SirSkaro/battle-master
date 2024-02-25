@@ -48,6 +48,31 @@ class GroupedChunkInstance(GroupedChunk):
         return GroupedChunkInstance(other.cid, group, features)
 
 
+class GroupedStimulusInput:
+    def __init__(self, groups: List[str]):
+        self.groups = groups
+        self._inputs = {group: nd.MutableNumDict(default=0.) for group in groups}
+
+    def add_chunk_to_group(self, chunk: cl.chunk, group: str, weight: float = 1.):
+        self._assert_group_registered(group)
+
+        groupchunk = GroupedChunk.from_chunk(chunk, group)
+        self._inputs[group][groupchunk] = weight
+
+    def add_chunk_instance_to_group(self, chunk: cl.chunk, group: str, features: List[cl.feature], weight: float = 1.):
+        self._assert_group_registered(group)
+
+        chunk_instance = GroupedChunkInstance.from_chunk(chunk, group, features)
+        self._inputs[group][chunk_instance] = weight
+
+    def to_stimulus(self, default=0.) -> Dict[str, nd.NumDict]:
+        return {group: nd.NumDict(d, default=default) for group, d in self._inputs.items()}
+
+    def _assert_group_registered(self, group: str):
+        if group not in self.groups:
+            raise ValueError(f'{group} is not in the list of supported groups: {self.groups}')
+
+
 class NamedStimuli(cl.Process):
     """
     Because a single stimulus buffer can only communicate chunks/features without any context, it's impossible to
