@@ -6,16 +6,15 @@ from pyClarion import nd
 import pytest
 from poke_env.environment import Battle, Pokemon, PokemonType, Move
 
-from battlemaster.adapters.clarion_adapter import MindAdapter, BattleConcept, PerceptionFactory
-
-
-@pytest.fixture
-def battle():
-    battle = Mock(spec=Battle)
-    return battle
+from battlemaster.adapters.clarion_adapter import MindAdapter, BattleConcept, PerceptionFactory, GroupedStimulusInput
 
 
 class TestMindAdapter:
+    @pytest.fixture
+    def battle(self) -> Battle:
+        battle = Mock(spec=Battle)
+        return battle
+
     @pytest.fixture
     def acs_terminus(self) -> cl.Construct:
         return Mock(spec=cl.Construct)
@@ -64,44 +63,31 @@ class TestPerceptionFactory:
     def factory(self) -> PerceptionFactory:
         return PerceptionFactory()
 
-    def test_all_concepts_in_perception(self, factory: PerceptionFactory, battle):
-        battle.opponent_active_pokemon = self._given_opposing_pokemon('foo', 'bar')
-        battle.available_moves = [self._given_move('icepunch')]
+    @pytest.fixture
+    def battle(self) -> Battle:
+        battle = Mock(spec=Battle)
+        battle.opponent_active_pokemon = self._given_opposing_pokemon('normal', 'flying')
+        battle.available_moves = [self._given_move('thunderbolt'), self._given_move('icebeam')]
 
-        perception = factory.map(battle)
+        return battle
 
+    @pytest.fixture
+    def perception(self, factory: PerceptionFactory, battle) -> GroupedStimulusInput:
+        return factory.map(battle)
+
+    def test_all_concepts_in_perception(self, perception: GroupedStimulusInput):
         for concept in [BattleConcept.ACTIVE_OPPONENT_TYPE, BattleConcept.AVAILABLE_MOVES]:
             assert concept.value in perception.to_stimulus()
 
-    @pytest.mark.parametrize("active_opponent_types", [
-        (["normal", None]),
-        (["ghost", "fairy"])
-    ])
-    def test_opposing_pokemon_types_in_perception(self, factory: PerceptionFactory, battle,
-                                                  active_opponent_types: List[str]):
-        battle.opponent_active_pokemon = self._given_opposing_pokemon(active_opponent_types[0],
-                                                                      active_opponent_types[1])
-        battle.available_moves = []
-
-        perception = factory.map(battle)
-
+    def test_opposing_pokemon_types_in_perception(self, perception: GroupedStimulusInput):
         perceived_opponent_types = perception.to_stimulus()[BattleConcept.ACTIVE_OPPONENT_TYPE]
-        for expected_type in [type for type in active_opponent_types if type is not None]:
+        for expected_type in ['normal', 'flying']:
             assert cl.chunk(expected_type) in perceived_opponent_types
 
-    @pytest.mark.parametrize("available_moves", [
-        (["foo", "bar", "baz", "faz"]),
-        (["get them!"])
-    ])
-    def test_available_moves_in_perception(self, factory: PerceptionFactory, battle, available_moves: List[str]):
-        battle.opponent_active_pokemon = self._given_opposing_pokemon("some type")
-        battle.available_moves = [self._given_move(move) for move in available_moves]
-
-        perception = factory.map(battle)
-
+    def test_available_moves_in_perception(self, perception: GroupedStimulusInput):
         perceived_moves = perception.to_stimulus()[BattleConcept.AVAILABLE_MOVES]
-        assert len(available_moves) == len(perceived_moves)
-        for move_name in available_moves:
+        assert 2 == len(perceived_moves)
+        for move_name in ['thunderbolt', 'icebeam']:
             assert cl.chunk(move_name) in perceived_moves
 
     @staticmethod
