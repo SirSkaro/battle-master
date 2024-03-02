@@ -105,48 +105,48 @@ class TestPerceptionFactory:
 
     def test_active_pokemon_in_perception(self, active_pokemon_perception: GroupedChunkInstance):
         assert 'blastoise' == active_pokemon_perception.cid
-        assert 100 == active_pokemon_perception.get_feature('level')[0].val
-        assert not active_pokemon_perception.get_feature('fainted')[0].val
-        assert active_pokemon_perception.get_feature('active')[0].val
-        assert not active_pokemon_perception.get_feature('terastallized')[0].val
+        assert 100 == active_pokemon_perception.get_feature_value('level')
+        assert not active_pokemon_perception.get_feature_value('fainted')
+        assert active_pokemon_perception.get_feature_value('active')
+        assert not active_pokemon_perception.get_feature_value('terastallized')
 
     def test_active_pokemon_type_in_perception(self, active_pokemon_perception: GroupedChunkInstance):
         assert 1 == len(active_pokemon_perception.get_feature('type'))
-        assert 'water' == active_pokemon_perception.get_feature('type')[0].val
+        assert 'water' == active_pokemon_perception.get_feature_value('type')
 
     def test_active_pokemon_item_in_perception(self, active_pokemon_perception: GroupedChunkInstance):
-        assert 'leftovers' == active_pokemon_perception.get_feature('item')[0].val
+        assert 'leftovers' == active_pokemon_perception.get_feature_value('item')
 
     def test_active_pokemon_statuses_in_perception(self, active_pokemon_perception: GroupedChunkInstance):
-        assert 'brn' == active_pokemon_perception.get_feature('status')[0].val
+        assert 'brn' == active_pokemon_perception.get_feature_value('status')
         assert 2 == len(active_pokemon_perception.get_feature('volatile_status'))
-        assert 'aqua_ring' == active_pokemon_perception.get_feature('volatile_status')[0].val
-        assert 'taunt' == active_pokemon_perception.get_feature('volatile_status')[1].val
+        assert 'aqua_ring' == active_pokemon_perception.get_feature_value('volatile_status')[0]
+        assert 'taunt' == active_pokemon_perception.get_feature_value('volatile_status')[1]
 
     def test_active_pokemon_stats_in_perception(self, active_pokemon_perception: GroupedChunkInstance):
-        assert 291 == active_pokemon_perception.get_feature('atk')[0].val
-        assert 328 == active_pokemon_perception.get_feature('def')[0].val
-        assert 295 == active_pokemon_perception.get_feature('spa')[0].val
-        assert 339 == active_pokemon_perception.get_feature('spd')[0].val
-        assert 280 == active_pokemon_perception.get_feature('spe')[0].val
-        assert 123 == active_pokemon_perception.get_feature('hp')[0].val
-        assert 362 == active_pokemon_perception.get_feature('max_hp')[0].val
+        assert 291 == active_pokemon_perception.get_feature_value('atk')
+        assert 328 == active_pokemon_perception.get_feature_value('def')
+        assert 295 == active_pokemon_perception.get_feature_value('spa')
+        assert 339 == active_pokemon_perception.get_feature_value('spd')
+        assert 280 == active_pokemon_perception.get_feature_value('spe')
+        assert 123 == active_pokemon_perception.get_feature_value('hp')
+        assert 362 == active_pokemon_perception.get_feature_value('max_hp')
 
     def test_active_pokemon_stat_boosts_in_perception(self, active_pokemon_perception: GroupedChunkInstance):
-        assert 2 == active_pokemon_perception.get_feature('atk_boost')[0].val
-        assert -1 == active_pokemon_perception.get_feature('def_boost')[0].val
-        assert 2 == active_pokemon_perception.get_feature('spa_boost')[0].val
-        assert -1 == active_pokemon_perception.get_feature('spd_boost')[0].val
-        assert 2 == active_pokemon_perception.get_feature('spe_boost')[0].val
-        assert 0 == active_pokemon_perception.get_feature('accuracy_boost')[0].val
-        assert 0 == active_pokemon_perception.get_feature('evasion_boost')[0].val
+        assert 2 == active_pokemon_perception.get_feature_value('atk_boost')
+        assert -1 == active_pokemon_perception.get_feature_value('def_boost')
+        assert 2 == active_pokemon_perception.get_feature_value('spa_boost')
+        assert -1 == active_pokemon_perception.get_feature_value('spd_boost')
+        assert 2 == active_pokemon_perception.get_feature_value('spe_boost')
+        assert 0 == active_pokemon_perception.get_feature_value('accuracy_boost')
+        assert 0 == active_pokemon_perception.get_feature_value('evasion_boost')
 
     def test_active_pokemon_moves_in_perception(self, active_pokemon_perception: GroupedChunkInstance):
         assert 4 == len(active_pokemon_perception.get_feature('move'))
-        assert 'shellsmash' == active_pokemon_perception.get_feature('move')[0].val
-        assert 'icebeam' == active_pokemon_perception.get_feature('move')[1].val
-        assert 'hydropump' == active_pokemon_perception.get_feature('move')[2].val
-        assert 'terablast' == active_pokemon_perception.get_feature('move')[3].val
+        assert 'shellsmash' == active_pokemon_perception.get_feature_value('move')[0]
+        assert 'icebeam' == active_pokemon_perception.get_feature_value('move')[1]
+        assert 'hydropump' == active_pokemon_perception.get_feature_value('move')[2]
+        assert 'terablast' == active_pokemon_perception.get_feature_value('move')[3]
 
     @classmethod
     def _given_active_pokemon(cls) -> Pokemon:

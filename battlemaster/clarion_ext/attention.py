@@ -1,5 +1,5 @@
 from types import MappingProxyType
-from typing import Hashable, List, Dict, Mapping, Any, Optional
+from typing import Hashable, List, Dict, Mapping, Any, Optional, Union
 
 import pyClarion as cl
 from pyClarion import nd
@@ -49,6 +49,14 @@ class GroupedChunkInstance(GroupedChunk):
 
     def get_feature(self, name: str) -> List[cl.feature]:
         return [feature for feature in self.features if feature.tag == name]
+
+    def get_feature_value(self, name: str) -> Union[Optional[str], List[str]]:
+        features = self.get_feature(name)
+        if len(features) == 0:
+            return None
+        elif len(features) == 1:
+            return features[0].val
+        return [feature.val for feature in features]
 
 
 class GroupedStimulusInput:
