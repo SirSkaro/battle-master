@@ -3,7 +3,7 @@ from enum import Enum
 
 import pyClarion as cl
 from pyClarion import nd
-from poke_env.environment import Battle, Pokemon
+from poke_env.environment import Battle, Pokemon, SideCondition, STACKABLE_CONDITIONS
 
 from ..clarion_ext.attention import GroupedStimulusInput
 
@@ -15,8 +15,10 @@ class BattleConcept(str, Enum):
     PLAYERS = 'players'
     ACTIVE_POKEMON = 'active_pokemon'
     TEAM = 'team'
+    SIDE_CONDITIONS = 'side_conditions'
     OPPONENT_ACTIVE_POKEMON = 'opponent_active_pokemon'
     OPPONENT_TEAM = 'opponent_team'
+    OPPONENT_SIDE_CONDITIONS = 'opponent_side_conditions'
 
     def __str__(self) -> str:
         return self.value
@@ -52,6 +54,9 @@ class PerceptionFactory:
         self._add_available_moves(battle, perception)
         self._add_player_active_pokemon(battle.active_pokemon, perception)
         self._add_player_team(battle.team, perception)
+        self._add_side_conditions(battle.side_conditions, BattleConcept.SIDE_CONDITIONS.value, perception)
+
+        self._add_side_conditions(battle.opponent_side_conditions, BattleConcept.OPPONENT_SIDE_CONDITIONS.value, perception)
 
         return perception
 
@@ -81,6 +86,17 @@ class PerceptionFactory:
     def _add_player_team(cls, team: Dict[str, Pokemon], perception: GroupedStimulusInput):
         for pokemon in team.values():
             cls._add_player_pokemon(pokemon, BattleConcept.TEAM, perception)
+
+    @staticmethod
+    def _add_side_conditions(side_conditions: Dict[SideCondition, int], group: str, perception: GroupedStimulusInput):
+        for condition, value in side_conditions.items():
+            features = []
+            if condition in STACKABLE_CONDITIONS:
+                features.append(cl.feature('layers', value))
+            else:
+                features.append(cl.feature('start_turn', value))
+
+            perception.add_chunk_instance_to_group(cl.chunk(condition.name.lower()), group, features)
 
     @staticmethod
     def _add_player_pokemon(pokemon: Pokemon, group: str, perception: GroupedStimulusInput):

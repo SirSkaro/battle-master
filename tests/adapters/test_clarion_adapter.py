@@ -6,7 +6,7 @@ import pyClarion as cl
 from pyClarion import nd
 import pytest
 from poke_env.environment import (
-    Battle, Pokemon, PokemonType, Move, Status, Effect
+    Battle, Pokemon, PokemonType, Move, Status, Effect, SideCondition
 )
 
 from battlemaster.adapters.clarion_adapter import (
@@ -78,6 +78,7 @@ class TestPerceptionFactory:
         battle.team = self._given_team(battle.active_pokemon)
         battle.opponent_active_pokemon = self._given_opposing_pokemon()
         battle.available_moves = [self._given_move('thunderbolt'), self._given_move('icebeam')]
+        self._given_side_conditions(battle)
 
         return battle
 
@@ -178,6 +179,22 @@ class TestPerceptionFactory:
         assert 'them' == player.get_feature_value('name')
         assert 'punching bag' == player.get_feature_value('role')
 
+    def test_side_conditions_in_perception(self, perception: GroupedStimulusInput):
+        perceived_conditions = perception.to_stimulus()[BattleConcept.SIDE_CONDITIONS]
+        assert 2 == len(perceived_conditions)
+
+        light_screen = typing.cast(GroupedChunkInstance, get_chunk_from_numdict('light_screen', perceived_conditions))
+        reflect = typing.cast(GroupedChunkInstance, get_chunk_from_numdict('reflect', perceived_conditions))
+
+        assert 23 == light_screen.get_feature_value('start_turn')
+        assert 24 == reflect.get_feature_value('start_turn')
+
+    def test_opponent_side_conditions_in_perception(self, perception: GroupedStimulusInput):
+        perceived_conditions = perception.to_stimulus()[BattleConcept.OPPONENT_SIDE_CONDITIONS]
+        assert 1 == len(perceived_conditions)
+
+        spikes = typing.cast(GroupedChunkInstance, get_chunk_from_numdict('spikes', perceived_conditions))
+        assert 3 == spikes.get_feature_value('layers')
 
     @staticmethod
     def _given_players(battle):
@@ -235,6 +252,16 @@ class TestPerceptionFactory:
         team[benched_pokemon.species] = benched_pokemon
 
         return team
+
+    @staticmethod
+    def _given_side_conditions(battle):
+        battle.side_conditions = {
+            SideCondition.LIGHT_SCREEN: 23,
+            SideCondition.REFLECT: 24
+        }
+        battle.opponent_side_conditions = {
+            SideCondition.SPIKES: 3
+        }
 
     @staticmethod
     def _given_move(name: str) -> Move:
