@@ -49,7 +49,7 @@ class PerceptionFactory:
 
         self._add_active_pokemon_types(battle, perception)
         self._add_available_moves(battle, perception)
-        #self._add_pokemon(battle.active_pokemon, BattleConcept.ACTIVE_POKEMON.value, perception)
+        self._add_pokemon(battle.active_pokemon, BattleConcept.ACTIVE_POKEMON.value, perception)
 
         return perception
 
@@ -69,12 +69,13 @@ class PerceptionFactory:
             return
 
         features = [
+            *[cl.feature('type', typing.name.lower()) for typing in pokemon.types if typing is not None],
             cl.feature('level', pokemon.level),
             cl.feature('fainted', pokemon.fainted),
             cl.feature('active', pokemon.active),
-            cl.feature('status', pokemon.status),
-            *[cl.feature('volatile_status', effect) for effect in pokemon.effects.keys()],
-            *[cl.feature(stat, pokemon.status[stat]) for stat in ['atk', 'def', 'spa', 'spd', 'spe']],
+            cl.feature('status', pokemon.status.name.lower() if pokemon.status is not None else None),
+            *[cl.feature('volatile_status', effect.name.lower()) for effect in pokemon.effects.keys()],
+            *[cl.feature(stat, pokemon.stats[stat]) for stat in ['atk', 'def', 'spa', 'spd', 'spe']],
             cl.feature('hp', pokemon.current_hp),
             cl.feature('max_hp', pokemon.max_hp),
             cl.feature('item', pokemon.item),

@@ -1,3 +1,5 @@
+from typing import Optional
+
 import pyClarion as cl
 from pyClarion import nd
 
@@ -11,6 +13,14 @@ def normalize(d: nd.NumDict) -> nd.NumDict:
 def get_feature_value_by_name(feature_name: str, chunk: cl.chunk, chunk_db: cl.Chunks) -> str:
     try:
         features = chunk_db[chunk].features
-        return [feature for feature in features if feature.cid[0][0] == feature_name][0].val
+        return [feature for feature in features if feature.tag == feature_name][0].val
     except:
         raise ValueError(f'chunk {chunk} does not have a feature with the name "{feature_name}"')
+
+
+def get_chunk_from_numdict(chunk_name: str, d: nd.NumDict) -> Optional[cl.chunk]:
+    for chunk in d.keys():
+        if chunk.cid == chunk_name:
+            return chunk
+    else:
+        return None
