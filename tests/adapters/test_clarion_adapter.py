@@ -128,6 +128,9 @@ class TestPerceptionFactory:
     def test_active_pokemon_item_in_perception(self, active_pokemon_perception: GroupedChunkInstance):
         assert 'leftovers' == active_pokemon_perception.get_feature_value('item')
 
+    def test_active_pokemon_ability_in_perception(self, active_pokemon_perception: GroupedChunkInstance):
+        assert 'torrent' == active_pokemon_perception.get_feature_value('ability')
+
     def test_active_pokemon_statuses_in_perception(self, active_pokemon_perception: GroupedChunkInstance):
         assert 'brn' == active_pokemon_perception.get_feature_value('status')
         assert 2 == len(active_pokemon_perception.get_feature('volatile_status'))
@@ -218,6 +221,7 @@ class TestPerceptionFactory:
         pokemon.max_hp = 362
         pokemon.item = 'leftovers'
         pokemon.moves = {name: cls._given_move(name) for name in ['shellsmash', 'icebeam', 'hydropump', 'terablast']}
+        pokemon.ability = 'torrent'
         pokemon.boosts = {'atk': 2, 'def': -1, 'spa': 2, 'spd': -1, 'spe': 2, 'accuracy': 0, 'evasion': 0}
         pokemon.terastallized = False
 
@@ -246,6 +250,7 @@ class TestPerceptionFactory:
         benched_pokemon.max_hp = 360
         benched_pokemon.item = 'choicespecs'
         benched_pokemon.moves = {name: cls._given_move(name) for name in ['fireblast', 'solarbeam']}
+        benched_pokemon.ability = 'blaze'
         benched_pokemon.boosts = {'atk': 0, 'def': 0, 'spa': 0, 'spd': 0, 'spe': 0, 'accuracy': 0, 'evasion': 0}
         benched_pokemon.terastallized = False
 

@@ -114,6 +114,7 @@ class PerceptionFactory:
             cl.feature('hp', pokemon.current_hp),
             cl.feature('max_hp', pokemon.max_hp),
             cl.feature('item', pokemon.item),
+            cl.feature('ability', pokemon.ability),
             *[cl.feature('move', move) for move in pokemon.moves.keys()],
             *[cl.feature(f'{stat}_boost', pokemon.boosts[stat]) for stat in ['atk', 'def', 'spa', 'spd', 'spe', 'accuracy', 'evasion']],
             cl.feature('terastallized', pokemon.terastallized)
