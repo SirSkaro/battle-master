@@ -7,7 +7,7 @@ from poke_env.player import RandomPlayer, Player, SimpleHeuristicsPlayer
 
 from .mind import create_agent
 from .agents import BattleMasterPlayer, MaxDamagePlayer, ExpectiminimaxPlayer
-from .adapters.clarion_adapter import MindAdapter
+from .adapters.clarion_adapter import MindAdapter, PerceptionFactory
 
 
 class PlayerSingleton(providers.Provider):
@@ -74,7 +74,8 @@ def _configure_benchmark_player(config: providers.Configuration, provides: Type)
 
 def _configure_mind():
     mind, stimulus = create_agent()
-    return providers.Object(MindAdapter(mind, stimulus))
+    factory = PerceptionFactory()
+    return providers.Object(MindAdapter(mind, stimulus, factory))
 
 
 class Container(containers.DeclarativeContainer):

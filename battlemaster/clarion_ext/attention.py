@@ -55,9 +55,13 @@ class GroupedStimulusInput:
 
     def add_chunk_to_group(self, chunk: cl.chunk, group: str, weight: float = 1.):
         self._assert_group_registered(group)
+        self._add_chunk(chunk, group, weight)
 
-        groupchunk = GroupedChunk.from_chunk(chunk, group)
-        self._inputs[group][groupchunk] = weight
+    def add_chunks_to_group(self, chunks: List[cl.chunk], group: str, weight: float = 1.):
+        self._assert_group_registered(group)
+
+        for chunk in chunks:
+            self._add_chunk(chunk, group, weight)
 
     def add_chunk_instance_to_group(self, chunk: cl.chunk, group: str, features: List[cl.feature], weight: float = 1.):
         self._assert_group_registered(group)
@@ -71,6 +75,10 @@ class GroupedStimulusInput:
     def _assert_group_registered(self, group: str):
         if group not in self.groups:
             raise ValueError(f'{group} is not in the list of supported groups: {self.groups}')
+
+    def _add_chunk(self, chunk: cl.chunk, group: str, weight: float):
+        groupchunk = GroupedChunk.from_chunk(chunk, group)
+        self._inputs[group][groupchunk] = weight
 
 
 class NamedStimuli(cl.Process):

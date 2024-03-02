@@ -1,18 +1,20 @@
 from unittest.mock import Mock, MagicMock
-from typing import Optional
+from typing import Optional, List
 
 import pytest
 from battlemaster.agents import BattleMasterPlayer
 from poke_env.environment import Battle, Move, Pokemon, PokemonType
 import pyClarion as cl
 
-from battlemaster.adapters.clarion_adapter import MindAdapter
+from battlemaster.adapters.clarion_adapter import MindAdapter, PerceptionFactory, BattleConcept
+from battlemaster.clarion_ext.attention import GroupedStimulusInput
 
 
 def _given_move(name: str) -> Move:
     move = Mock(spec=Move)
     move.id = name
     return move
+
 
 @pytest.fixture
 def battle():
@@ -61,16 +63,21 @@ class TestBattleMasterPlayerUnitTests:
 
 class TestBattleMasterPlayerComponentTests:
     @pytest.fixture
-    def mind_adapter(self, agent: cl.Structure, stimulus: cl.Construct) -> MindAdapter:
-        return MindAdapter(agent, stimulus)
+    def perception_factory(self) -> PerceptionFactory:
+        return Mock(spec=PerceptionFactory)
+
+    @pytest.fixture
+    def mind_adapter(self, agent: cl.Structure, stimulus: cl.Construct, perception_factory: PerceptionFactory) -> MindAdapter:
+        return MindAdapter(agent, stimulus, perception_factory)
 
     @pytest.fixture
     def player(self, mind_adapter: MindAdapter) -> BattleMasterPlayer:
         return BattleMasterPlayer(mind_adapter, start_listening=False)
 
-    def test_chooses_super_effective_move(self, player: BattleMasterPlayer, battle):
+    def test_chooses_super_effective_move(self, player: BattleMasterPlayer, battle, perception_factory):
         battle.available_moves = [_given_move('darkpulse'), _given_move('bodyslam')]
         battle.opponent_active_pokemon = self._given_opposing_pokemon('ghost')
+        self._given_perception(perception_factory, battle.available_moves, battle.opponent_active_pokemon)
 
         issued_action = player.choose_move(battle)
 
@@ -82,6 +89,14 @@ class TestBattleMasterPlayerComponentTests:
         secondary_type = self._given_type(type2) if type2 is not None else None
         pokemon.types = (primary_type, secondary_type)
         return pokemon
+
+    @staticmethod
+    def _given_perception(perception_factory, moves: List[Move], opponent: Pokemon):
+        perception = GroupedStimulusInput([BattleConcept.AVAILABLE_MOVES.value, BattleConcept.ACTIVE_OPPONENT_TYPE.value])
+        perception.add_chunks_to_group([cl.chunk(move.id) for move in moves], BattleConcept.AVAILABLE_MOVES.value)
+        perception.add_chunks_to_group([cl.chunk(type.name) for type in opponent.types if type is not None], BattleConcept.ACTIVE_OPPONENT_TYPE)
+
+        perception_factory.map = MagicMock(return_value=perception)
 
     @staticmethod
     def _given_type(name: str) -> PokemonType:
