@@ -47,7 +47,8 @@ class PerceptionFactory:
     def map(self, battle: Battle) -> GroupedStimulusInput:
         perception = GroupedStimulusInput([concept.value for concept in BattleConcept])
 
-        self._add_active_pokemon_types(battle, perception)
+        self._add_players(battle, perception)
+        self._add_active_opponent_pokemon_types(battle, perception)
         self._add_available_moves(battle, perception)
         self._add_player_active_pokemon(battle.active_pokemon, perception)
         self._add_player_team(battle.team, perception)
@@ -55,7 +56,15 @@ class PerceptionFactory:
         return perception
 
     @staticmethod
-    def _add_active_pokemon_types(battle: Battle, perception: GroupedStimulusInput):
+    def _add_players(battle: Battle, perception: GroupedStimulusInput):
+        self_features = [cl.feature('name', battle.player_username), cl.feature('role', battle.player_role)]
+        perception.add_chunk_instance_to_group(cl.chunk('self'), BattleConcept.PLAYERS, self_features)
+
+        self_features = [cl.feature('name', battle.opponent_username), cl.feature('role', battle.opponent_role)]
+        perception.add_chunk_instance_to_group(cl.chunk('opponent'), BattleConcept.PLAYERS, self_features)
+
+    @staticmethod
+    def _add_active_opponent_pokemon_types(battle: Battle, perception: GroupedStimulusInput):
         type_chunks = [cl.chunk(typing.name.lower()) for typing in battle.opponent_active_pokemon.types if typing is not None]
         perception.add_chunks_to_group(type_chunks, BattleConcept.ACTIVE_OPPONENT_TYPE.value)
 

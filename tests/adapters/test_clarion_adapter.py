@@ -73,6 +73,7 @@ class TestPerceptionFactory:
     @pytest.fixture
     def battle(self) -> Battle:
         battle: Battle = Mock(spec=Battle)
+        self._given_players(battle)
         battle.active_pokemon = self._given_active_pokemon()
         battle.team = self._given_team(battle.active_pokemon)
         battle.opponent_active_pokemon = self._given_opposing_pokemon()
@@ -92,6 +93,10 @@ class TestPerceptionFactory:
     @pytest.fixture
     def team_perception(self, perception: GroupedStimulusInput) -> nd.NumDict:
         return perception.to_stimulus()[BattleConcept.TEAM]
+
+    @pytest.fixture
+    def players_perception(self, perception: GroupedStimulusInput) -> nd.NumDict:
+        return perception.to_stimulus()[BattleConcept.PLAYERS]
 
     def test_all_concepts_in_perception(self, perception: GroupedStimulusInput):
         for concept in [BattleConcept.ACTIVE_OPPONENT_TYPE, BattleConcept.AVAILABLE_MOVES, BattleConcept.ACTIVE_POKEMON]:
@@ -162,6 +167,24 @@ class TestPerceptionFactory:
         benched_pokemon = typing.cast(GroupedChunkInstance, get_chunk_from_numdict('charizard', team_perception))
         assert benched_pokemon.get_feature_value('fainted')
         assert not benched_pokemon.get_feature_value('active')
+
+    def test_self_in_perception(self, players_perception: nd.NumDict):
+        player = typing.cast(GroupedChunkInstance, get_chunk_from_numdict('self', players_perception))
+        assert 'me' == player.get_feature_value('name')
+        assert 'AI' == player.get_feature_value('role')
+
+    def test_opponent_in_perception(self, players_perception: nd.NumDict):
+        player = typing.cast(GroupedChunkInstance, get_chunk_from_numdict('opponent', players_perception))
+        assert 'them' == player.get_feature_value('name')
+        assert 'punching bag' == player.get_feature_value('role')
+
+
+    @staticmethod
+    def _given_players(battle):
+        battle.player_username = 'me'
+        battle.player_role = 'AI'
+        battle.opponent_username = 'them'
+        battle.opponent_role = 'punching bag'
 
     @classmethod
     def _given_active_pokemon(cls) -> Pokemon:
