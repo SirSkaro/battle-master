@@ -1,4 +1,4 @@
-from typing import Mapping, Optional
+from typing import Mapping, Optional, Dict
 from enum import Enum
 
 import pyClarion as cl
@@ -49,7 +49,8 @@ class PerceptionFactory:
 
         self._add_active_pokemon_types(battle, perception)
         self._add_available_moves(battle, perception)
-        self._add_pokemon(battle.active_pokemon, BattleConcept.ACTIVE_POKEMON.value, perception)
+        self._add_player_active_pokemon(battle.active_pokemon, perception)
+        self._add_player_team(battle.team, perception)
 
         return perception
 
@@ -63,8 +64,17 @@ class PerceptionFactory:
         move_chunks = [cl.chunk(move.id) for move in battle.available_moves]
         perception.add_chunks_to_group(move_chunks, BattleConcept.AVAILABLE_MOVES.value)
 
+    @classmethod
+    def _add_player_active_pokemon(cls, pokemon: Pokemon, perception: GroupedStimulusInput):
+        cls._add_player_pokemon(pokemon, BattleConcept.ACTIVE_POKEMON.value, perception)
+
+    @classmethod
+    def _add_player_team(cls, team: Dict[str, Pokemon], perception: GroupedStimulusInput):
+        for pokemon in team.values():
+            cls._add_player_pokemon(pokemon, BattleConcept.TEAM, perception)
+
     @staticmethod
-    def _add_pokemon(pokemon: Pokemon, group: str, perception: GroupedStimulusInput):
+    def _add_player_pokemon(pokemon: Pokemon, group: str, perception: GroupedStimulusInput):
         if pokemon is None:
             return
 
