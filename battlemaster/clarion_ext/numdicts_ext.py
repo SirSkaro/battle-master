@@ -3,6 +3,8 @@ from typing import Optional
 import pyClarion as cl
 from pyClarion import nd
 
+from .attention import GroupedChunk
+
 
 def normalize(d: nd.NumDict) -> nd.NumDict:
     if len(d) == 0:
@@ -24,3 +26,12 @@ def get_chunk_from_numdict(chunk_name: str, d: nd.NumDict) -> Optional[cl.chunk]
             return chunk
     else:
         return None
+
+
+def filter_chunks_by_group(group: str, d: nd.NumDict) -> nd.NumDict:
+    result = nd.MutableNumDict(default=d.default)
+    for chunk, weight in d.items():
+        if isinstance(chunk, GroupedChunk) and chunk.group == group:
+            result[chunk] = weight
+
+    return nd.NumDict(result, default=d.default)
