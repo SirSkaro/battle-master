@@ -3,7 +3,7 @@ from enum import Enum
 
 import pyClarion as cl
 from pyClarion import nd
-from poke_env.environment import Battle, Pokemon, SideCondition, STACKABLE_CONDITIONS
+from poke_env.environment import Battle, Pokemon, SideCondition, STACKABLE_CONDITIONS, Weather
 
 from ..clarion_ext.attention import GroupedStimulusInput
 
@@ -19,6 +19,7 @@ class BattleConcept(str, Enum):
     OPPONENT_ACTIVE_POKEMON = 'opponent_active_pokemon'
     OPPONENT_TEAM = 'opponent_team'
     OPPONENT_SIDE_CONDITIONS = 'opponent_side_conditions'
+    WEATHER = 'weather'
 
     def __str__(self) -> str:
         return self.value
@@ -60,6 +61,8 @@ class PerceptionFactory:
         self._add_active_opponent_pokemon_types(battle, perception)
         self._add_opponent_team(battle.opponent_team, perception)
         self._add_side_conditions(battle.opponent_side_conditions, BattleConcept.OPPONENT_SIDE_CONDITIONS.value, perception)
+
+        self._add_weather(battle.weather, perception)
 
         return perception
 
@@ -113,6 +116,13 @@ class PerceptionFactory:
     def _add_opponent_team(cls, team: Dict[str, Pokemon], perception: GroupedStimulusInput):
         for pokemon in team.values():
             cls._add_opponent_pokemon(pokemon, BattleConcept.OPPONENT_TEAM, perception)
+
+    @staticmethod
+    def _add_weather(weather_turn_map: Dict[Weather, int], perception: GroupedStimulusInput):
+        for weather, turn in weather_turn_map.items():
+            perception.add_chunk_instance_to_group(cl.chunk(weather.name.lower()),
+                                                   BattleConcept.WEATHER.value,
+                                                   [cl.feature('start_turn', turn)])
 
     @staticmethod
     def _add_player_pokemon(pokemon: Pokemon, group: str, perception: GroupedStimulusInput):

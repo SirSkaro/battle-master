@@ -6,7 +6,7 @@ import pyClarion as cl
 from pyClarion import nd
 import pytest
 from poke_env.environment import (
-    Battle, Pokemon, PokemonType, Move, Status, Effect, SideCondition
+    Battle, Pokemon, PokemonType, Move, Status, Effect, SideCondition, Weather
 )
 
 from battlemaster.adapters.clarion_adapter import (
@@ -79,7 +79,9 @@ class TestPerceptionFactory:
         battle.opponent_active_pokemon = self._given_opposing_pokemon()
         battle.opponent_team = self._given_opposing_team(battle.opponent_active_pokemon)
         battle.available_moves = [self._given_move('thunderbolt'), self._given_move('icebeam')]
+
         self._given_side_conditions(battle)
+        self._given_weather(battle)
 
         return battle
 
@@ -259,6 +261,14 @@ class TestPerceptionFactory:
         assert benched_pokemon.get_feature_value('terastallized')
         assert 'grass' == benched_pokemon.get_feature_value('type')
 
+    def test_weather(self, perception: GroupedStimulusInput):
+        perceived_weather = perception.to_stimulus()[BattleConcept.WEATHER]
+        assert 1 == len(perceived_weather)
+
+        sunny_day = typing.cast(GroupedChunkInstance, get_chunk_from_numdict('sunnyday', perceived_weather))
+        assert 22 == sunny_day.get_feature_value('start_turn')
+
+
     @staticmethod
     def _given_players(battle):
         battle.player_username = 'me'
@@ -363,6 +373,10 @@ class TestPerceptionFactory:
         battle.opponent_side_conditions = {
             SideCondition.SPIKES: 3
         }
+
+    @staticmethod
+    def _given_weather(battle):
+        battle.weather = {Weather.SUNNYDAY: 22}
 
     @staticmethod
     def _given_move(name: str) -> Move:
