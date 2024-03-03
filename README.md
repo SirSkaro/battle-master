@@ -80,6 +80,13 @@ python -m battlemaster benchmark random 100
 ## Development/Local Setup
 If you want a completely local setup (such as for development purposes), you can run a Pokemon Showdown server locally. You can also disable security to remove rate limiting and throttling, which can be useful for benchmarking. 
 
+### Running Tests
+This project uses `pytest` as a test library. To run the tests, simply execute the `pytest` command in the base of the project.
+
+```shell
+pytest
+```
+
 ### Docker
 Included in the top-level `local-setup` directory is a Dockerfile to create an image of a Pokemon Showdown with security disabled (including automated chat moderation daemons). It runs on the default port 8000.
 ```shell

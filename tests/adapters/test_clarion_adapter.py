@@ -6,7 +6,7 @@ import pyClarion as cl
 from pyClarion import nd
 import pytest
 from poke_env.environment import (
-    Battle, Pokemon, PokemonType, Move, Status, Effect, SideCondition, Weather
+    Battle, Pokemon, PokemonType, Move, Status, Effect, SideCondition, Weather, Field
 )
 
 from battlemaster.adapters.clarion_adapter import (
@@ -82,6 +82,7 @@ class TestPerceptionFactory:
 
         self._given_side_conditions(battle)
         self._given_weather(battle)
+        self._given_field_effects(battle)
 
         return battle
 
@@ -268,6 +269,15 @@ class TestPerceptionFactory:
         sunny_day = typing.cast(GroupedChunkInstance, get_chunk_from_numdict('sunnyday', perceived_weather))
         assert 22 == sunny_day.get_feature_value('start_turn')
 
+    def test_field_effects(self, perception: GroupedStimulusInput):
+        perceived_effects = perception.to_stimulus()[BattleConcept.FIELD_EFFECTS]
+        assert 2 == len(perceived_effects)
+
+        gravity = typing.cast(GroupedChunkInstance, get_chunk_from_numdict('gravity', perceived_effects))
+        electric_terrain = typing.cast(GroupedChunkInstance, get_chunk_from_numdict('electric_terrain', perceived_effects))
+        assert 20 == gravity.get_feature_value('start_turn')
+        assert 19 == electric_terrain.get_feature_value('start_turn')
+
 
     @staticmethod
     def _given_players(battle):
@@ -377,6 +387,13 @@ class TestPerceptionFactory:
     @staticmethod
     def _given_weather(battle):
         battle.weather = {Weather.SUNNYDAY: 22}
+
+    @staticmethod
+    def _given_field_effects(battle):
+        battle.fields = {
+            Field.GRAVITY: 20,
+            Field.ELECTRIC_TERRAIN: 19
+        }
 
     @staticmethod
     def _given_move(name: str) -> Move:
