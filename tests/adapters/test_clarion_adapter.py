@@ -99,6 +99,11 @@ class TestPerceptionFactory:
     def players_perception(self, perception: GroupedStimulusInput) -> nd.NumDict:
         return perception.to_stimulus()[BattleConcept.PLAYERS]
 
+    @pytest.fixture
+    def opponent_active_pokemon_perception(self, perception: GroupedStimulusInput) -> GroupedChunkInstance:
+        perceived_pokemon = perception.to_stimulus()[BattleConcept.OPPONENT_ACTIVE_POKEMON]
+        return typing.cast(GroupedChunkInstance, get_chunk_from_numdict('staraptor', perceived_pokemon))
+
     def test_all_concepts_in_perception(self, perception: GroupedStimulusInput):
         for concept in [BattleConcept.ACTIVE_OPPONENT_TYPE, BattleConcept.AVAILABLE_MOVES, BattleConcept.ACTIVE_POKEMON]:
             assert concept in perception.to_stimulus()
@@ -134,8 +139,9 @@ class TestPerceptionFactory:
     def test_active_pokemon_statuses_in_perception(self, active_pokemon_perception: GroupedChunkInstance):
         assert 'brn' == active_pokemon_perception.get_feature_value('status')
         assert 2 == len(active_pokemon_perception.get_feature('volatile_status'))
-        assert 'aqua_ring' == active_pokemon_perception.get_feature_value('volatile_status')[0]
-        assert 'taunt' == active_pokemon_perception.get_feature_value('volatile_status')[1]
+        volatile_statuses = active_pokemon_perception.get_feature_value('volatile_status')
+        assert 'aqua_ring' == volatile_statuses[0]
+        assert 'taunt' == volatile_statuses[1]
 
     def test_active_pokemon_stats_in_perception(self, active_pokemon_perception: GroupedChunkInstance):
         assert 291 == active_pokemon_perception.get_feature_value('atk')
@@ -157,10 +163,11 @@ class TestPerceptionFactory:
 
     def test_active_pokemon_moves_in_perception(self, active_pokemon_perception: GroupedChunkInstance):
         assert 4 == len(active_pokemon_perception.get_feature('move'))
-        assert 'shellsmash' == active_pokemon_perception.get_feature_value('move')[0]
-        assert 'icebeam' == active_pokemon_perception.get_feature_value('move')[1]
-        assert 'hydropump' == active_pokemon_perception.get_feature_value('move')[2]
-        assert 'terablast' == active_pokemon_perception.get_feature_value('move')[3]
+        moves = active_pokemon_perception.get_feature_value('move')
+        assert 'shellsmash' == moves[0]
+        assert 'icebeam' == moves[1]
+        assert 'hydropump' == moves[2]
+        assert 'terablast' == moves[3]
 
     def test_all_pokemon_in_team(self, team_perception: nd.NumDict):
         assert 2 == len(team_perception)
@@ -199,6 +206,42 @@ class TestPerceptionFactory:
         spikes = typing.cast(GroupedChunkInstance, get_chunk_from_numdict('spikes', perceived_conditions))
         assert 3 == spikes.get_feature_value('layers')
 
+    def test_opponent_active_pokemon_in_perception(self, opponent_active_pokemon_perception: GroupedChunkInstance):
+        assert 'staraptor' == opponent_active_pokemon_perception.cid
+        assert 100 == opponent_active_pokemon_perception.get_feature_value('level')
+        assert not opponent_active_pokemon_perception.get_feature_value('fainted')
+        assert opponent_active_pokemon_perception.get_feature_value('active')
+        assert not opponent_active_pokemon_perception.get_feature_value('terastallized')
+
+    def test_opponent_active_pokemon_type_in_perception(self, opponent_active_pokemon_perception: GroupedChunkInstance):
+        assert 2 == len(opponent_active_pokemon_perception.get_feature('type'))
+        types = opponent_active_pokemon_perception.get_feature_value('type')
+        assert 'normal' == types[0]
+        assert 'flying' == types[1]
+
+    def test_opponent_active_pokemon_item_in_perception(self, opponent_active_pokemon_perception: GroupedChunkInstance):
+        assert 'choiceband' == opponent_active_pokemon_perception.get_feature_value('item')
+
+    def test_opponent_active_pokemon_unknown_ability_in_perception(self, opponent_active_pokemon_perception: GroupedChunkInstance):
+        assert opponent_active_pokemon_perception.get_feature_value('ability') is None
+
+    def test_opponent_active_pokemon_statuses_in_perception(self, opponent_active_pokemon_perception: GroupedChunkInstance):
+        assert 'tox' == opponent_active_pokemon_perception.get_feature_value('status')
+        assert 'future_sight' == opponent_active_pokemon_perception.get_feature_value('volatile_status')
+
+    def test_opponent_active_pokemon_stat_boosts_in_perception(self, opponent_active_pokemon_perception: GroupedChunkInstance):
+        assert 0 == opponent_active_pokemon_perception.get_feature_value('atk_boost')
+        assert -1 == opponent_active_pokemon_perception.get_feature_value('def_boost')
+        assert 0 == opponent_active_pokemon_perception.get_feature_value('spa_boost')
+        assert -1 == opponent_active_pokemon_perception.get_feature_value('spd_boost')
+        assert 0 == opponent_active_pokemon_perception.get_feature_value('spe_boost')
+        assert 1 == opponent_active_pokemon_perception.get_feature_value('accuracy_boost')
+        assert 1 == opponent_active_pokemon_perception.get_feature_value('evasion_boost')
+
+    def test_opponent_active_pokemon_moves_in_perception(self, opponent_active_pokemon_perception: GroupedChunkInstance):
+        assert 1 == len(opponent_active_pokemon_perception.get_feature('move'))
+        assert 'closecombat' == opponent_active_pokemon_perception.get_feature_value('move')
+
     @staticmethod
     def _given_players(battle):
         battle.player_username = 'me'
@@ -232,6 +275,19 @@ class TestPerceptionFactory:
         pokemon: Pokemon = Mock(spec=Pokemon)
         pokemon.species = 'staraptor'
         pokemon.types = (cls._given_type('normal'), cls._given_type('flying'))
+        pokemon.level = 100
+        pokemon.fainted = False
+        pokemon.active = True
+        pokemon.status = Status.TOX
+        pokemon.effects = {Effect.FUTURE_SIGHT: 1}
+        pokemon.stats = {'atk': 372, 'def': 262, 'spa': 218, 'spd': 240, 'spe': 328}
+        pokemon.current_hp = 75
+        pokemon.item = 'choiceband'
+        pokemon.moves = {name: cls._given_move(name) for name in ['closecombat']}
+        pokemon.ability = None
+        pokemon.boosts = {'atk': 0, 'def': -1, 'spa': 0, 'spd': -1, 'spe': 0, 'accuracy': 1, 'evasion': 1}
+        pokemon.terastallized = False
+
         return pokemon
 
     @classmethod

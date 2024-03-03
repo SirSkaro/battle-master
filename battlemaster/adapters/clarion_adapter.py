@@ -50,12 +50,14 @@ class PerceptionFactory:
         perception = GroupedStimulusInput([concept.value for concept in BattleConcept])
 
         self._add_players(battle, perception)
-        self._add_active_opponent_pokemon_types(battle, perception)
-        self._add_available_moves(battle, perception)
+
         self._add_player_active_pokemon(battle.active_pokemon, perception)
+        self._add_available_moves(battle, perception)
         self._add_player_team(battle.team, perception)
         self._add_side_conditions(battle.side_conditions, BattleConcept.SIDE_CONDITIONS.value, perception)
 
+        self._add_opponent_active_pokemon(battle.opponent_active_pokemon, perception)
+        self._add_active_opponent_pokemon_types(battle, perception)
         self._add_side_conditions(battle.opponent_side_conditions, BattleConcept.OPPONENT_SIDE_CONDITIONS.value, perception)
 
         return perception
@@ -80,6 +82,8 @@ class PerceptionFactory:
 
     @classmethod
     def _add_player_active_pokemon(cls, pokemon: Pokemon, perception: GroupedStimulusInput):
+        if pokemon is None:
+            return
         cls._add_player_pokemon(pokemon, BattleConcept.ACTIVE_POKEMON.value, perception)
 
     @classmethod
@@ -98,11 +102,14 @@ class PerceptionFactory:
 
             perception.add_chunk_instance_to_group(cl.chunk(condition.name.lower()), group, features)
 
-    @staticmethod
-    def _add_player_pokemon(pokemon: Pokemon, group: str, perception: GroupedStimulusInput):
+    @classmethod
+    def _add_opponent_active_pokemon(cls, pokemon: Pokemon, perception: GroupedStimulusInput):
         if pokemon is None:
             return
+        cls._add_opponent_pokemon(pokemon, BattleConcept.OPPONENT_ACTIVE_POKEMON.value, perception)
 
+    @staticmethod
+    def _add_player_pokemon(pokemon: Pokemon, group: str, perception: GroupedStimulusInput):
         features = [
             *[cl.feature('type', typing.name.lower()) for typing in pokemon.types if typing is not None],
             cl.feature('level', pokemon.level),
@@ -113,6 +120,25 @@ class PerceptionFactory:
             *[cl.feature(stat, pokemon.stats[stat]) for stat in ['atk', 'def', 'spa', 'spd', 'spe']],
             cl.feature('hp', pokemon.current_hp),
             cl.feature('max_hp', pokemon.max_hp),
+            cl.feature('item', pokemon.item),
+            cl.feature('ability', pokemon.ability),
+            *[cl.feature('move', move) for move in pokemon.moves.keys()],
+            *[cl.feature(f'{stat}_boost', pokemon.boosts[stat]) for stat in ['atk', 'def', 'spa', 'spd', 'spe', 'accuracy', 'evasion']],
+            cl.feature('terastallized', pokemon.terastallized)
+        ]
+
+        perception.add_chunk_instance_to_group(cl.chunk(pokemon.species), group, features)
+
+    @staticmethod
+    def _add_opponent_pokemon(pokemon: Pokemon, group: str, perception: GroupedStimulusInput):
+        features = [
+            *[cl.feature('type', typing.name.lower()) for typing in pokemon.types if typing is not None],
+            cl.feature('level', pokemon.level),
+            cl.feature('fainted', pokemon.fainted),
+            cl.feature('active', pokemon.active),
+            cl.feature('status', pokemon.status.name.lower() if pokemon.status is not None else None),
+            *[cl.feature('volatile_status', effect.name.lower()) for effect in pokemon.effects.keys()],
+            cl.feature('hp_percentage', pokemon.current_hp),
             cl.feature('item', pokemon.item),
             cl.feature('ability', pokemon.ability),
             *[cl.feature('move', move) for move in pokemon.moves.keys()],
