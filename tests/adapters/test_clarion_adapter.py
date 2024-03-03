@@ -151,7 +151,7 @@ class TestPerceptionFactory:
         assert 'brn' == active_pokemon_perception.get_feature_value('status')
         assert 2 == len(active_pokemon_perception.get_feature('volatile_status'))
         volatile_statuses = active_pokemon_perception.get_feature_value('volatile_status')
-        assert 'aqua_ring' == volatile_statuses[0]
+        assert 'aquaring' == volatile_statuses[0]
         assert 'taunt' == volatile_statuses[1]
 
     def test_active_pokemon_stats_in_perception(self, active_pokemon_perception: GroupedChunkInstance):
@@ -206,7 +206,7 @@ class TestPerceptionFactory:
         perceived_conditions = perception.to_stimulus()[BattleConcept.SIDE_CONDITIONS]
         assert 2 == len(perceived_conditions)
 
-        light_screen = typing.cast(GroupedChunkInstance, get_chunk_from_numdict('light_screen', perceived_conditions))
+        light_screen = typing.cast(GroupedChunkInstance, get_chunk_from_numdict('lightscreen', perceived_conditions))
         reflect = typing.cast(GroupedChunkInstance, get_chunk_from_numdict('reflect', perceived_conditions))
 
         assert 23 == light_screen.get_feature_value('start_turn')
@@ -240,7 +240,7 @@ class TestPerceptionFactory:
 
     def test_opponent_active_pokemon_statuses_in_perception(self, opponent_active_pokemon_perception: GroupedChunkInstance):
         assert 'tox' == opponent_active_pokemon_perception.get_feature_value('status')
-        assert 'future_sight' == opponent_active_pokemon_perception.get_feature_value('volatile_status')
+        assert 'futuresight' == opponent_active_pokemon_perception.get_feature_value('volatile_status')
 
     def test_opponent_active_pokemon_stat_boosts_in_perception(self, opponent_active_pokemon_perception: GroupedChunkInstance):
         assert 0 == opponent_active_pokemon_perception.get_feature_value('atk_boost')
@@ -274,12 +274,12 @@ class TestPerceptionFactory:
         sunny_day = typing.cast(GroupedChunkInstance, get_chunk_from_numdict('sunnyday', perceived_weather))
         assert 22 == sunny_day.get_feature_value('start_turn')
 
-    def test_field_effects_in_percetion(self, perception: GroupedStimulusInput):
+    def test_field_effects_in_perception(self, perception: GroupedStimulusInput):
         perceived_effects = perception.to_stimulus()[BattleConcept.FIELD_EFFECTS]
         assert 2 == len(perceived_effects)
 
         gravity = typing.cast(GroupedChunkInstance, get_chunk_from_numdict('gravity', perceived_effects))
-        electric_terrain = typing.cast(GroupedChunkInstance, get_chunk_from_numdict('electric_terrain', perceived_effects))
+        electric_terrain = typing.cast(GroupedChunkInstance, get_chunk_from_numdict('electricterrain', perceived_effects))
         assert 20 == gravity.get_feature_value('start_turn')
         assert 19 == electric_terrain.get_feature_value('start_turn')
 

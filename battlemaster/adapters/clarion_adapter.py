@@ -67,7 +67,7 @@ class PerceptionFactory:
         self._add_side_conditions(battle.opponent_side_conditions, BattleConcept.OPPONENT_SIDE_CONDITIONS.value, perception)
 
         self._add_weather(battle.weather, perception)
-        self._add_fields(battle.fields, perception)
+        self._add_field_effects(battle.fields, perception)
 
         return perception
 
@@ -119,16 +119,17 @@ class PerceptionFactory:
         for pokemon in team.values():
             cls._add_player_pokemon(pokemon, BattleConcept.TEAM, perception)
 
-    @staticmethod
-    def _add_side_conditions(side_conditions: Dict[SideCondition, int], group: str, perception: GroupedStimulusInput):
+    @classmethod
+    def _add_side_conditions(cls, side_conditions: Dict[SideCondition, int], group: str, perception: GroupedStimulusInput):
         for condition, value in side_conditions.items():
+            chunk = cl.chunk(cls._normalize_name(condition))
             features = []
             if condition in STACKABLE_CONDITIONS:
                 features.append(cl.feature('layers', value))
             else:
                 features.append(cl.feature('start_turn', value))
 
-            perception.add_chunk_instance_to_group(cl.chunk(condition.name.lower()), group, features)
+            perception.add_chunk_instance_to_group(chunk, group, features)
 
     @classmethod
     def _add_opponent_active_pokemon(cls, pokemon: Pokemon, perception: GroupedStimulusInput):
@@ -141,29 +142,31 @@ class PerceptionFactory:
         for pokemon in team.values():
             cls._add_opponent_pokemon(pokemon, BattleConcept.OPPONENT_TEAM, perception)
 
-    @staticmethod
-    def _add_weather(weather_turn_map: Dict[Weather, int], perception: GroupedStimulusInput):
+    @classmethod
+    def _add_weather(cls, weather_turn_map: Dict[Weather, int], perception: GroupedStimulusInput):
         for weather, turn in weather_turn_map.items():
-            perception.add_chunk_instance_to_group(cl.chunk(weather.name.lower()),
+            chunk = cl.chunk(cls._normalize_name(weather))
+            perception.add_chunk_instance_to_group(chunk,
                                                    BattleConcept.WEATHER.value,
                                                    [cl.feature('start_turn', turn)])
 
-    @staticmethod
-    def _add_fields(fields: Dict[Field, int], perception: GroupedStimulusInput):
+    @classmethod
+    def _add_field_effects(cls, fields: Dict[Field, int], perception: GroupedStimulusInput):
         for field, turn in fields.items():
-            perception.add_chunk_instance_to_group(cl.chunk(field.name.lower()),
+            chunk = cl.chunk(cls._normalize_name(field))
+            perception.add_chunk_instance_to_group(chunk,
                                                    BattleConcept.FIELD_EFFECTS.value,
                                                    [cl.feature('start_turn', turn)])
 
-    @staticmethod
-    def _add_player_pokemon(pokemon: Pokemon, group: str, perception: GroupedStimulusInput):
+    @classmethod
+    def _add_player_pokemon(cls, pokemon: Pokemon, group: str, perception: GroupedStimulusInput):
         features = [
-            *[cl.feature('type', typing.name.lower()) for typing in pokemon.types if typing is not None],
+            *[cl.feature('type', cls._normalize_name(typing)) for typing in pokemon.types if typing is not None],
             cl.feature('level', pokemon.level),
             cl.feature('fainted', pokemon.fainted),
             cl.feature('active', pokemon.active),
-            cl.feature('status', pokemon.status.name.lower() if pokemon.status is not None else None),
-            *[cl.feature('volatile_status', effect.name.lower()) for effect in pokemon.effects.keys()],
+            cl.feature('status', cls._normalize_name(pokemon.status) if pokemon.status is not None else None),
+            *[cl.feature('volatile_status', cls._normalize_name(effect)) for effect in pokemon.effects.keys()],
             *[cl.feature(stat, pokemon.stats[stat]) for stat in ['atk', 'def', 'spa', 'spd', 'spe']],
             cl.feature('hp', pokemon.current_hp),
             cl.feature('max_hp', pokemon.max_hp),
@@ -176,15 +179,15 @@ class PerceptionFactory:
 
         perception.add_chunk_instance_to_group(cl.chunk(pokemon.species), group, features)
 
-    @staticmethod
-    def _add_opponent_pokemon(pokemon: Pokemon, group: str, perception: GroupedStimulusInput):
+    @classmethod
+    def _add_opponent_pokemon(cls, pokemon: Pokemon, group: str, perception: GroupedStimulusInput):
         features = [
-            *[cl.feature('type', typing.name.lower()) for typing in pokemon.types if typing is not None],
+            *[cl.feature('type', cls._normalize_name(typing)) for typing in pokemon.types if typing is not None],
             cl.feature('level', pokemon.level),
             cl.feature('fainted', pokemon.fainted),
             cl.feature('active', pokemon.active),
-            cl.feature('status', pokemon.status.name.lower() if pokemon.status is not None else None),
-            *[cl.feature('volatile_status', effect.name.lower()) for effect in pokemon.effects.keys()],
+            cl.feature('status', cls._normalize_name(pokemon.status) if pokemon.status is not None else None),
+            *[cl.feature('volatile_status', cls._normalize_name(effect)) for effect in pokemon.effects.keys()],
             cl.feature('hp_percentage', pokemon.current_hp),
             cl.feature('item', pokemon.item),
             cl.feature('ability', pokemon.ability),
@@ -194,3 +197,9 @@ class PerceptionFactory:
         ]
 
         perception.add_chunk_instance_to_group(cl.chunk(pokemon.species), group, features)
+
+    @staticmethod
+    def _normalize_name(enum: Enum):
+        return enum.name\
+            .lower()\
+            .replace("_", "")
