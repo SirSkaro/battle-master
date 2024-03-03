@@ -11,7 +11,6 @@ from ..clarion_ext.attention import GroupedStimulusInput
 
 
 class BattleConcept(str, Enum):
-    BATTLE_TAG = "battle_tag"
     ACTIVE_OPPONENT_TYPE = 'active_opponent_type'
     AVAILABLE_MOVES = 'available_moves'
     PLAYERS = 'players'
@@ -23,6 +22,7 @@ class BattleConcept(str, Enum):
     OPPONENT_SIDE_CONDITIONS = 'opponent_side_conditions'
     WEATHER = 'weather'
     FIELD_EFFECTS = 'field_effects'
+    BATTLE = "BATTLE"
 
     def __str__(self) -> str:
         return self.value
@@ -53,6 +53,7 @@ class PerceptionFactory:
     def map(self, battle: Battle) -> GroupedStimulusInput:
         perception = GroupedStimulusInput([concept.value for concept in BattleConcept])
 
+        self._add_battle_metadata(battle, perception)
         self._add_players(battle, perception)
 
         self._add_player_active_pokemon(battle.active_pokemon, perception)
@@ -71,12 +72,31 @@ class PerceptionFactory:
         return perception
 
     @staticmethod
+    def _add_battle_metadata(battle: Battle, perception: GroupedStimulusInput):
+        features = [
+            cl.feature('tag', battle.battle_tag),
+            cl.feature('force_switch', battle.force_switch),
+            cl.feature('wait', battle._wait),
+            cl.feature('format', battle._format),
+            cl.feature('is_team_preview', battle.in_team_preview)
+        ]
+        perception.add_chunk_instance_to_group(cl.chunk('metadata'), BattleConcept.BATTLE, features)
+
+    @staticmethod
     def _add_players(battle: Battle, perception: GroupedStimulusInput):
-        self_features = [cl.feature('name', battle.player_username), cl.feature('role', battle.player_role)]
+        self_features = [
+            cl.feature('name', battle.player_username),
+            cl.feature('role', battle.player_role),
+            cl.feature('rating', battle.rating)
+        ]
         perception.add_chunk_instance_to_group(cl.chunk('self'), BattleConcept.PLAYERS, self_features)
 
-        self_features = [cl.feature('name', battle.opponent_username), cl.feature('role', battle.opponent_role)]
-        perception.add_chunk_instance_to_group(cl.chunk('opponent'), BattleConcept.PLAYERS, self_features)
+        opponent_features = [
+            cl.feature('name', battle.opponent_username),
+            cl.feature('role', battle.opponent_role),
+            cl.feature('rating', battle.opponent_rating)
+        ]
+        perception.add_chunk_instance_to_group(cl.chunk('opponent'), BattleConcept.PLAYERS, opponent_features)
 
     @staticmethod
     def _add_active_opponent_pokemon_types(battle: Battle, perception: GroupedStimulusInput):

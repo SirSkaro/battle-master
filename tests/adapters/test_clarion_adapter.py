@@ -73,12 +73,15 @@ class TestPerceptionFactory:
     @pytest.fixture
     def battle(self) -> Battle:
         battle: Battle = Mock(spec=Battle)
+        self._given_battle_metadata(battle)
         self._given_players(battle)
+
         battle.active_pokemon = self._given_active_pokemon()
         battle.team = self._given_team(battle.active_pokemon)
+        battle.available_moves = [self._given_move('thunderbolt'), self._given_move('icebeam')]
+
         battle.opponent_active_pokemon = self._given_opposing_pokemon()
         battle.opponent_team = self._given_opposing_team(battle.opponent_active_pokemon)
-        battle.available_moves = [self._given_move('thunderbolt'), self._given_move('icebeam')]
 
         self._given_side_conditions(battle)
         self._given_weather(battle)
@@ -191,11 +194,13 @@ class TestPerceptionFactory:
         player = typing.cast(GroupedChunkInstance, get_chunk_from_numdict('self', players_perception))
         assert 'me' == player.get_feature_value('name')
         assert 'AI' == player.get_feature_value('role')
+        assert 9001 == player.get_feature_value('rating')
 
     def test_opponent_in_perception(self, players_perception: nd.NumDict):
         player = typing.cast(GroupedChunkInstance, get_chunk_from_numdict('opponent', players_perception))
         assert 'them' == player.get_feature_value('name')
         assert 'punching bag' == player.get_feature_value('role')
+        assert player.get_feature_value('rating') is None
 
     def test_side_conditions_in_perception(self, perception: GroupedStimulusInput):
         perceived_conditions = perception.to_stimulus()[BattleConcept.SIDE_CONDITIONS]
@@ -262,14 +267,14 @@ class TestPerceptionFactory:
         assert benched_pokemon.get_feature_value('terastallized')
         assert 'grass' == benched_pokemon.get_feature_value('type')
 
-    def test_weather(self, perception: GroupedStimulusInput):
+    def test_weather_in_perception(self, perception: GroupedStimulusInput):
         perceived_weather = perception.to_stimulus()[BattleConcept.WEATHER]
         assert 1 == len(perceived_weather)
 
         sunny_day = typing.cast(GroupedChunkInstance, get_chunk_from_numdict('sunnyday', perceived_weather))
         assert 22 == sunny_day.get_feature_value('start_turn')
 
-    def test_field_effects(self, perception: GroupedStimulusInput):
+    def test_field_effects_in_percetion(self, perception: GroupedStimulusInput):
         perceived_effects = perception.to_stimulus()[BattleConcept.FIELD_EFFECTS]
         assert 2 == len(perceived_effects)
 
@@ -278,13 +283,32 @@ class TestPerceptionFactory:
         assert 20 == gravity.get_feature_value('start_turn')
         assert 19 == electric_terrain.get_feature_value('start_turn')
 
+    def test_battle_metadata_perception(self, perception: GroupedStimulusInput):
+        perceived_metadata = perception.to_stimulus()[BattleConcept.BATTLE]
+        metadata = typing.cast(GroupedChunkInstance, get_chunk_from_numdict('metadata', perceived_metadata))
+
+        assert 'testNU' == metadata.get_feature_value('tag')
+        assert metadata.get_feature_value('force_switch')
+        assert metadata.get_feature_value('wait')
+        assert 'genXNU' == metadata.get_feature_value('format')
+        assert metadata.get_feature_value('is_team_preview')
+
+    @staticmethod
+    def _given_battle_metadata(battle):
+        battle.battle_tag = 'testNU'
+        battle.force_switch = True
+        battle._wait = True
+        battle._format = 'genXNU'
+        battle.in_team_preview = True
 
     @staticmethod
     def _given_players(battle):
         battle.player_username = 'me'
         battle.player_role = 'AI'
+        battle.rating = 9001
         battle.opponent_username = 'them'
         battle.opponent_role = 'punching bag'
+        battle.opponent_rating = None
 
     @classmethod
     def _given_active_pokemon(cls) -> Pokemon:
