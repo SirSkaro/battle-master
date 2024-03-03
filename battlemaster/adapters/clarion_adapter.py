@@ -51,7 +51,7 @@ class MindAdapter:
 
 class PerceptionFactory:
     def map(self, battle: Battle) -> GroupedStimulusInput:
-        perception = GroupedStimulusInput([concept.value for concept in BattleConcept])
+        perception = GroupedStimulusInput([concept for concept in BattleConcept])
 
         self._add_battle_metadata(battle, perception)
         self._add_players(battle, perception)
@@ -59,12 +59,12 @@ class PerceptionFactory:
         self._add_player_active_pokemon(battle.active_pokemon, perception)
         self._add_available_moves(battle, perception)
         self._add_player_team(battle.team, perception)
-        self._add_side_conditions(battle.side_conditions, BattleConcept.SIDE_CONDITIONS.value, perception)
+        self._add_side_conditions(battle.side_conditions, BattleConcept.SIDE_CONDITIONS, perception)
 
         self._add_opponent_active_pokemon(battle.opponent_active_pokemon, perception)
         self._add_active_opponent_pokemon_types(battle, perception)
         self._add_opponent_team(battle.opponent_team, perception)
-        self._add_side_conditions(battle.opponent_side_conditions, BattleConcept.OPPONENT_SIDE_CONDITIONS.value, perception)
+        self._add_side_conditions(battle.opponent_side_conditions, BattleConcept.OPPONENT_SIDE_CONDITIONS, perception)
 
         self._add_weather(battle.weather, perception)
         self._add_field_effects(battle.fields, perception)
@@ -101,18 +101,18 @@ class PerceptionFactory:
     @staticmethod
     def _add_active_opponent_pokemon_types(battle: Battle, perception: GroupedStimulusInput):
         type_chunks = [cl.chunk(typing.name.lower()) for typing in battle.opponent_active_pokemon.types if typing is not None]
-        perception.add_chunks_to_group(type_chunks, BattleConcept.ACTIVE_OPPONENT_TYPE.value)
+        perception.add_chunks_to_group(type_chunks, BattleConcept.ACTIVE_OPPONENT_TYPE)
 
     @staticmethod
     def _add_available_moves(battle: Battle, perception: GroupedStimulusInput):
         move_chunks = [cl.chunk(move.id) for move in battle.available_moves]
-        perception.add_chunks_to_group(move_chunks, BattleConcept.AVAILABLE_MOVES.value)
+        perception.add_chunks_to_group(move_chunks, BattleConcept.AVAILABLE_MOVES)
 
     @classmethod
     def _add_player_active_pokemon(cls, pokemon: Pokemon, perception: GroupedStimulusInput):
         if pokemon is None:
             return
-        cls._add_player_pokemon(pokemon, BattleConcept.ACTIVE_POKEMON.value, perception)
+        cls._add_player_pokemon(pokemon, BattleConcept.ACTIVE_POKEMON, perception)
 
     @classmethod
     def _add_player_team(cls, team: Dict[str, Pokemon], perception: GroupedStimulusInput):
@@ -135,7 +135,7 @@ class PerceptionFactory:
     def _add_opponent_active_pokemon(cls, pokemon: Pokemon, perception: GroupedStimulusInput):
         if pokemon is None:
             return
-        cls._add_opponent_pokemon(pokemon, BattleConcept.OPPONENT_ACTIVE_POKEMON.value, perception)
+        cls._add_opponent_pokemon(pokemon, BattleConcept.OPPONENT_ACTIVE_POKEMON, perception)
 
     @classmethod
     def _add_opponent_team(cls, team: Dict[str, Pokemon], perception: GroupedStimulusInput):
@@ -147,7 +147,7 @@ class PerceptionFactory:
         for weather, turn in weather_turn_map.items():
             chunk = cl.chunk(cls._normalize_name(weather))
             perception.add_chunk_instance_to_group(chunk,
-                                                   BattleConcept.WEATHER.value,
+                                                   BattleConcept.WEATHER,
                                                    [cl.feature('start_turn', turn)])
 
     @classmethod
@@ -155,7 +155,7 @@ class PerceptionFactory:
         for field, turn in fields.items():
             chunk = cl.chunk(cls._normalize_name(field))
             perception.add_chunk_instance_to_group(chunk,
-                                                   BattleConcept.FIELD_EFFECTS.value,
+                                                   BattleConcept.FIELD_EFFECTS,
                                                    [cl.feature('start_turn', turn)])
 
     @classmethod
