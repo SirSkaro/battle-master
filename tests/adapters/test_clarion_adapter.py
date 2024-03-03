@@ -77,6 +77,7 @@ class TestPerceptionFactory:
         battle.active_pokemon = self._given_active_pokemon()
         battle.team = self._given_team(battle.active_pokemon)
         battle.opponent_active_pokemon = self._given_opposing_pokemon()
+        battle.opponent_team = self._given_opposing_team(battle.opponent_active_pokemon)
         battle.available_moves = [self._given_move('thunderbolt'), self._given_move('icebeam')]
         self._given_side_conditions(battle)
 
@@ -103,6 +104,10 @@ class TestPerceptionFactory:
     def opponent_active_pokemon_perception(self, perception: GroupedStimulusInput) -> GroupedChunkInstance:
         perceived_pokemon = perception.to_stimulus()[BattleConcept.OPPONENT_ACTIVE_POKEMON]
         return typing.cast(GroupedChunkInstance, get_chunk_from_numdict('staraptor', perceived_pokemon))
+
+    @pytest.fixture
+    def opponent_team_perception(self, perception: GroupedStimulusInput) -> nd.NumDict:
+        return perception.to_stimulus()[BattleConcept.OPPONENT_TEAM]
 
     def test_all_concepts_in_perception(self, perception: GroupedStimulusInput):
         for concept in [BattleConcept.ACTIVE_OPPONENT_TYPE, BattleConcept.AVAILABLE_MOVES, BattleConcept.ACTIVE_POKEMON]:
@@ -242,6 +247,18 @@ class TestPerceptionFactory:
         assert 1 == len(opponent_active_pokemon_perception.get_feature('move'))
         assert 'closecombat' == opponent_active_pokemon_perception.get_feature_value('move')
 
+    def test_all_pokemon_in_opponent_team(self, opponent_team_perception: nd.NumDict):
+        assert 2 == len(opponent_team_perception)
+        assert cl.chunk('staraptor') in opponent_team_perception
+        assert cl.chunk('tornadus') in opponent_team_perception
+
+    def test_fainted_benched_pokemon_in_opponent_team_perception(self, opponent_team_perception: nd.NumDict):
+        benched_pokemon = typing.cast(GroupedChunkInstance, get_chunk_from_numdict('tornadus', opponent_team_perception))
+        assert benched_pokemon.get_feature_value('fainted')
+        assert not benched_pokemon.get_feature_value('active')
+        assert benched_pokemon.get_feature_value('terastallized')
+        assert 'grass' == benched_pokemon.get_feature_value('type')
+
     @staticmethod
     def _given_players(battle):
         battle.player_username = 'me'
@@ -309,6 +326,29 @@ class TestPerceptionFactory:
         benched_pokemon.ability = 'blaze'
         benched_pokemon.boosts = {'atk': 0, 'def': 0, 'spa': 0, 'spd': 0, 'spe': 0, 'accuracy': 0, 'evasion': 0}
         benched_pokemon.terastallized = False
+
+        team[benched_pokemon.species] = benched_pokemon
+
+        return team
+
+    @classmethod
+    def _given_opposing_team(cls, active_pokemon: Pokemon) -> Dict[str, Pokemon]:
+        team = {active_pokemon.species: active_pokemon}
+        benched_pokemon: Pokemon = Mock(spec=Pokemon)
+        benched_pokemon.species = 'tornadus'
+        benched_pokemon.types = (cls._given_type('grass'), None)
+        benched_pokemon.level = 100
+        benched_pokemon.fainted = True
+        benched_pokemon.active = False
+        benched_pokemon.status = None
+        benched_pokemon.effects = {}
+        benched_pokemon.stats = {'atk': 361, 'def': 262, 'spa': 383, 'spd': 284, 'spe': 353}
+        benched_pokemon.current_hp = 0
+        benched_pokemon.item = None
+        benched_pokemon.moves = {name: cls._given_move(name) for name in ['terablast', 'uturn']}
+        benched_pokemon.ability = None
+        benched_pokemon.boosts = {'atk': 0, 'def': 0, 'spa': 0, 'spd': 0, 'spe': 0, 'accuracy': 1, 'evasion': 1}
+        benched_pokemon.terastallized = True
 
         team[benched_pokemon.species] = benched_pokemon
 

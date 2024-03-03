@@ -58,6 +58,7 @@ class PerceptionFactory:
 
         self._add_opponent_active_pokemon(battle.opponent_active_pokemon, perception)
         self._add_active_opponent_pokemon_types(battle, perception)
+        self._add_opponent_team(battle.opponent_team, perception)
         self._add_side_conditions(battle.opponent_side_conditions, BattleConcept.OPPONENT_SIDE_CONDITIONS.value, perception)
 
         return perception
@@ -107,6 +108,11 @@ class PerceptionFactory:
         if pokemon is None:
             return
         cls._add_opponent_pokemon(pokemon, BattleConcept.OPPONENT_ACTIVE_POKEMON.value, perception)
+
+    @classmethod
+    def _add_opponent_team(cls, team: Dict[str, Pokemon], perception: GroupedStimulusInput):
+        for pokemon in team.values():
+            cls._add_opponent_pokemon(pokemon, BattleConcept.OPPONENT_TEAM, perception)
 
     @staticmethod
     def _add_player_pokemon(pokemon: Pokemon, group: str, perception: GroupedStimulusInput):
