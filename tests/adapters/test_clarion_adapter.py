@@ -116,7 +116,7 @@ class TestPerceptionFactory:
         return perception.to_stimulus()[BattleConcept.OPPONENT_TEAM]
 
     def test_all_concepts_in_perception(self, perception: GroupedStimulusInput):
-        for concept in [BattleConcept.ACTIVE_OPPONENT_TYPE, BattleConcept.AVAILABLE_MOVES, BattleConcept.ACTIVE_POKEMON]:
+        for concept in BattleConcept:
             assert concept in perception.to_stimulus()
 
     def test_opposing_pokemon_types_in_perception(self, perception: GroupedStimulusInput):
@@ -423,6 +423,7 @@ class TestPerceptionFactory:
     def _given_move(name: str) -> Move:
         move = Mock(spec=Move)
         move.id = name
+        move.current_pp = 10
         return move
 
     @staticmethod

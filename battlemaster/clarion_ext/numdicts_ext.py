@@ -35,3 +35,7 @@ def filter_chunks_by_group(group: str, d: nd.NumDict) -> nd.NumDict:
             result[chunk] = weight
 
     return nd.NumDict(result, default=d.default)
+
+
+def get_feature_under_chunk_instance(chunk_name: str, feature_name):
+    pass

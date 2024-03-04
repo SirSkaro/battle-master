@@ -9,6 +9,8 @@ from poke_engine.helpers import normalize_name
 from pyClarion import nd
 
 from .clarion_adapter import BattleConcept
+from ..clarion_ext.attention import GroupedChunkInstance
+from ..clarion_ext.numdicts_ext import get_chunk_from_numdict
 
 
 class Simulator:
@@ -51,16 +53,20 @@ class BattleStimulusAdapter(Simulation):
 
     @classmethod
     def from_stimulus(cls, stimulus: Mapping[BattleConcept, nd.NumDict]) -> 'BattleStimulusAdapter':
-        simulation = BattleSimulationAdapter(battle.battle_tag)
+        battle_metadata_stim: GroupedChunkInstance = get_chunk_from_numdict('metadata', stimulus[BattleConcept.BATTLE])
+        simulation = BattleSimulationAdapter(battle_metadata_stim.get_feature_value('battle_tag'))
         simulation.user = cls._convert_player(stimulus)
 
     @classmethod
     def _convert_player(cls, stimulus: Mapping[BattleConcept, nd.NumDict]) -> Battler:
+        player_stim: GroupedChunkInstance = get_chunk_from_numdict('self', stimulus[BattleConcept.PLAYERS])
+
         user = Battler()
-        user.name = battle.player_username
-        user.account_name = battle.player_username
-        user.active = cls._convert_player_pokemon(battle.active_pokemon, battle) if battle.active_pokemon is not None else None
-        user.reserve = [cls._convert_player_pokemon(pokemon, battle) for pokemon in battle.available_switches]
+        user.name = player_stim.get_feature_value('name')
+        user.account_name = user.name
+
+        user.active = cls._convert_player_pokemon(stimulus) if BattleConcept.ACTIVE_POKEMON in stimulus else None
+        user.reserve = [cls._convert_player_pokemon(stimulus) for pokemon in battle.available_switches]
         user.trapped = Effect.TRAPPED in battle.active_pokemon.effects if battle.active_pokemon is not None else False
         user.side_conditions = defaultdict(lambda: 0,
                                            {normalize_name(condition.name).replace("_", ""): value for condition, value
@@ -173,8 +179,11 @@ class BattleSimulationAdapter(Simulation):
         simulated.max_hp = pokemon.max_hp
         simulated.item = pokemon.item
         simulated.ability = pokemon.ability
-        for move in battle.available_moves:
+
+        moves = battle.available_moves if pokemon.active else [move for move in pokemon.moves.values() if move.current_pp > 0]
+        for move in moves:
             simulated.add_move(move.id)
+
         simulated.volatile_statuses = [normalize_name(effect.name).replace("_", "") for effect, count in pokemon.effects.items() if count > 0]
         simulated.boosts = {
             constants.ACCURACY: pokemon.boosts['accuracy'],
@@ -208,7 +217,7 @@ class BattleSimulationAdapter(Simulation):
         else:
             simulated.set_most_likely_item_unless_revealed()
 
-        for move in pokemon.moves.values():
+        for move in [move for move in pokemon.moves.values() if move.current_pp > 0]:
             simulated.add_move(move.id)
         if len(simulated.moves) < 4:
             simulated.set_likely_moves_unless_revealed()
