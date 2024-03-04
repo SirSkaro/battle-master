@@ -217,7 +217,7 @@ class BattleSimulationAdapter(Simulation):
         else:
             simulated.set_most_likely_item_unless_revealed()
 
-        for move in [move for move in pokemon.moves.values() if move.current_pp > 0]:
+        for move in pokemon.moves.values():
             simulated.add_move(move.id)
         if len(simulated.moves) < 4:
             simulated.set_likely_moves_unless_revealed()
