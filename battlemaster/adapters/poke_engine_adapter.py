@@ -1,4 +1,4 @@
-from typing import Mapping, Any
+from typing import Mapping, List
 from collections import defaultdict
 
 from poke_env.environment import Battle, Pokemon, Effect, Field
@@ -10,7 +10,7 @@ from pyClarion import nd
 
 from .clarion_adapter import BattleConcept
 from ..clarion_ext.attention import GroupedChunkInstance
-from ..clarion_ext.numdicts_ext import get_chunk_from_numdict
+from ..clarion_ext.numdicts_ext import get_chunk_from_numdict, get_only_value_from_numdict
 
 
 class Simulator:
@@ -65,8 +65,8 @@ class BattleStimulusAdapter(Simulation):
         user.name = player_stim.get_feature_value('name')
         user.account_name = user.name
 
-        user.active = cls._convert_player_pokemon(stimulus) if BattleConcept.ACTIVE_POKEMON in stimulus else None
-        user.reserve = [cls._convert_player_pokemon(stimulus) for pokemon in battle.available_switches]
+        user.active = cls._convert_player_active_pokemon(stimulus) if BattleConcept.ACTIVE_POKEMON in stimulus else None
+        user.reserve = cls._convert_player_benched_pokemon(stimulus)
         user.trapped = Effect.TRAPPED in battle.active_pokemon.effects if battle.active_pokemon is not None else False
         user.side_conditions = defaultdict(lambda: 0,
                                            {normalize_name(condition.name).replace("_", ""): value for condition, value
@@ -74,40 +74,58 @@ class BattleStimulusAdapter(Simulation):
 
         return user
 
-    @staticmethod
-    def _convert_player_pokemon(stimulus: Mapping[BattleConcept, nd.NumDict]) -> PokemonSimulation:
-        simulated = PokemonSimulation(pokemon.species, pokemon.level)
-        simulated.fainted = pokemon.fainted
-        simulated.status = normalize_name(pokemon.status.name) if pokemon.status is not None else None
-        simulated.stats = {
-            constants.ATTACK: pokemon.stats['atk'],
-            constants.DEFENSE: pokemon.stats['def'],
-            constants.SPECIAL_ATTACK: pokemon.stats['spa'],
-            constants.SPECIAL_DEFENSE: pokemon.stats['spd'],
-            constants.SPEED: pokemon.stats['spe']
-        }
-        simulated.hp = pokemon.current_hp
-        simulated.max_hp = pokemon.max_hp
-        simulated.item = pokemon.item
-        simulated.ability = pokemon.ability
-        for move in battle.available_moves:
-            simulated.add_move(move.id)
-        simulated.volatile_statuses = [normalize_name(effect.name).replace("_", "") for effect, count in
-                                       pokemon.effects.items() if count > 0]
-        simulated.boosts = {
-            constants.ACCURACY: pokemon.boosts['accuracy'],
-            constants.EVASION: pokemon.boosts['evasion'],
-            constants.ATTACK: pokemon.boosts['atk'],
-            constants.DEFENSE: pokemon.boosts['def'],
-            constants.SPECIAL_ATTACK: pokemon.boosts['spa'],
-            constants.SPECIAL_DEFENSE: pokemon.boosts['spd'],
-            constants.SPEED: pokemon.boosts['spe']
-        }
-        simulated.terastallized = pokemon.terastallized
-        simulated.types = [normalize_name(type.name) for type in pokemon.types if type is not None]
+    @classmethod
+    def _convert_player_active_pokemon(cls, stimulus: Mapping[BattleConcept, nd.NumDict]) -> PokemonSimulation:
+        pokemon_stim: GroupedChunkInstance = get_only_value_from_numdict(stimulus[BattleConcept.ACTIVE_POKEMON])
+        available_move_stim: nd.NumDict = stimulus[BattleConcept.AVAILABLE_MOVES]
+
+        simulated = cls._convert_base_pokemon(pokemon_stim)
+        for move_chunk in available_move_stim.keys():
+            simulated.add_move(move_chunk.cid)
 
         return simulated
 
+    @classmethod
+    def _convert_player_benched_pokemon(cls, stimulus: Mapping[BattleConcept, nd.NumDict]) -> List[PokemonSimulation]:
+        benched_pokemon = []
+        team_stim = stimulus[BattleConcept.TEAM]
+        for pokemon_chunk_instance in team_stim.keys():
+            pass    # TODO
+        return benched_pokemon
+
+    @staticmethod
+    def _convert_base_pokemon(pokemon_stim: GroupedChunkInstance) -> PokemonSimulation:
+        """
+        Maps everything but moves
+        """
+        simulated = PokemonSimulation(pokemon_stim.cid, pokemon_stim.get_feature_value('level'))
+        simulated.fainted = pokemon_stim.get_feature_value('fainted')
+        simulated.status = pokemon_stim.get_feature_value('status')
+        simulated.stats = {
+            constants.ATTACK: pokemon_stim.get_feature_value('atk'),
+            constants.DEFENSE: pokemon_stim.get_feature_value('def'),
+            constants.SPECIAL_ATTACK: pokemon_stim.get_feature_value('spa'),
+            constants.SPECIAL_DEFENSE: pokemon_stim.get_feature_value('spd'),
+            constants.SPEED: pokemon_stim.get_feature_value('spe')
+        }
+        simulated.hp = pokemon_stim.get_feature_value('hp')
+        simulated.max_hp = pokemon_stim.get_feature_value('max_hp')
+        simulated.item = pokemon_stim.get_feature_value('item')
+        simulated.ability = pokemon_stim.get_feature_value('ability')
+        simulated.volatile_statuses = [status for status in pokemon_stim.get_feature_value('volatile_status')]
+        simulated.boosts = {
+            constants.ACCURACY: pokemon_stim.get_feature_value('accuracy_boost'),
+            constants.EVASION: pokemon_stim.get_feature_value('evasion_boost'),
+            constants.ATTACK: pokemon_stim.get_feature_value('atk_boost'),
+            constants.DEFENSE: pokemon_stim.get_feature_value('def_boost'),
+            constants.SPECIAL_ATTACK: pokemon_stim.get_feature_value('spa_boost'),
+            constants.SPECIAL_DEFENSE: pokemon_stim.get_feature_value('spd_boost'),
+            constants.SPEED: pokemon_stim.get_feature_value('spe_boost')
+        }
+        simulated.terastallized = pokemon_stim.get_feature_value('terastallized')
+        simulated.types = [feature.val for feature in pokemon_stim.get_feature('type')]
+
+        return simulated
 
 class BattleSimulationAdapter(Simulation):
     def __init__(self, battle_tag):

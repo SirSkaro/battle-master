@@ -50,7 +50,7 @@ class GroupedChunkInstance(GroupedChunk):
     def get_feature(self, name: str) -> List[cl.feature]:
         return [feature for feature in self.features if feature.tag == name]
 
-    def get_feature_value(self, name: str) -> Union[Optional[str], List[str]]:
+    def get_feature_value(self, name: str) -> Union[Optional[Any], List[Any]]:
         features = self.get_feature(name)
         if len(features) == 0:
             return None
