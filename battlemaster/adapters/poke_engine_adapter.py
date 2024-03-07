@@ -57,6 +57,9 @@ class BattleStimulusAdapter(Simulation):
         simulation = BattleSimulationAdapter(battle_metadata_stim.get_feature_value('battle_tag'))
         simulation.user = cls._convert_player(stimulus)
         simulation.opponent = cls._convert_opponent(stimulus)
+        check_speed_ranges(simulation, '')
+
+        # TODO weather and such
 
     @classmethod
     def _convert_player(cls, stimulus: Mapping[BattleConcept, nd.NumDict]) -> Battler:
@@ -216,7 +219,7 @@ class BattleSimulationAdapter(Simulation):
         simulation = BattleSimulationAdapter(battle.battle_tag)
         simulation.user = cls._convert_player(battle)
         simulation.opponent = cls._convert_opponent(battle)
-        check_speed_ranges(battle, '')
+        check_speed_ranges(simulation, '')
 
         if len(battle.weather) > 0:
             weather = next(iter(battle.weather))
