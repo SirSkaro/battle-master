@@ -56,6 +56,7 @@ class BattleStimulusAdapter(Simulation):
         battle_metadata_stim: GroupedChunkInstance = get_chunk_from_numdict('metadata', stimulus[BattleConcept.BATTLE])
         simulation = BattleSimulationAdapter(battle_metadata_stim.get_feature_value('battle_tag'))
         simulation.user = cls._convert_player(stimulus)
+        simulation.opponent = cls._convert_opponent(stimulus)
 
     @classmethod
     def _convert_player(cls, stimulus: Mapping[BattleConcept, nd.NumDict]) -> Battler:
@@ -65,10 +66,25 @@ class BattleStimulusAdapter(Simulation):
         user.name = player_stim.get_feature_value('name')
         user.account_name = user.name
 
-        user.active = cls._convert_player_active_pokemon(stimulus) if BattleConcept.ACTIVE_POKEMON in stimulus else None
+        user.active = cls._convert_player_active_pokemon(stimulus) if len(stimulus[BattleConcept.ACTIVE_POKEMON]) > 0 else None
         user.reserve = cls._convert_player_benched_pokemon(stimulus)
         user.trapped = cls._check_trapped(stimulus, BattleConcept.ACTIVE_POKEMON) if user.active is not None else False
         user.side_conditions = defaultdict(lambda: 0, {condition_chunk.cid: condition_chunk.features[0].val for condition_chunk in stimulus[BattleConcept.SIDE_CONDITIONS].keys()})
+
+        return user
+
+    @classmethod
+    def _convert_opponent(cls, stimulus: Mapping[BattleConcept, nd.NumDict]) -> Battler:
+        player_stim: GroupedChunkInstance = get_chunk_from_numdict('opponent', stimulus[BattleConcept.PLAYERS])
+        user = Battler()
+        user.name = player_stim.get_feature_value('name')
+        user.account_name = user.name
+
+        pokemon_stim: GroupedChunkInstance = get_only_value_from_numdict(stimulus[BattleConcept.OPPONENT_ACTIVE_POKEMON]) if len(stimulus[BattleConcept.OPPONENT_ACTIVE_POKEMON]) > 0 else None
+        user.active = cls._convert_opponent_pokemon(pokemon_stim) if pokemon_stim is not None else None
+        user.reserve = cls._convert_opponent_benched_pokemon(stimulus)
+        user.trapped = cls._check_trapped(stimulus, BattleConcept.OPPONENT_ACTIVE_POKEMON) if user.active is not None else False
+        user.side_conditions = defaultdict(lambda: 0, {condition_chunk.cid: condition_chunk.features[0].val for condition_chunk in stimulus[BattleConcept.OPPONENT_SIDE_CONDITIONS].keys()})
 
         return user
 
@@ -93,6 +109,7 @@ class BattleStimulusAdapter(Simulation):
             simulated_pokemon = cls._convert_base_player_pokemon(pokemon_chunk)
             for move in pokemon_chunk.get_feature_value('move'):
                 simulated_pokemon.add_move(move)
+            benched_pokemon.append(simulated_pokemon)
 
         return benched_pokemon
 
@@ -135,6 +152,56 @@ class BattleStimulusAdapter(Simulation):
         simulated.types = [feature.val for feature in pokemon_stim.get_feature('type')]
 
         return simulated
+
+    @staticmethod
+    def _convert_opponent_pokemon(pokemon_stim: GroupedChunkInstance) -> PokemonSimulation:
+        simulated = PokemonSimulation(pokemon_stim.cid, pokemon_stim.get_feature_value('level'))
+        simulated.fainted = pokemon_stim.get_feature_value('fainted')
+        simulated.status = pokemon_stim.get_feature_value('status')
+        simulated.set_most_likely_spread()
+        simulated.hp = (pokemon_stim.get_feature_value('hp') / 100.0) * simulated.max_hp
+
+        simulated.ability = pokemon_stim.get_feature_value('ability')
+        if simulated.ability is None:
+            simulated.set_most_likely_ability_unless_revealed()
+
+        simulated.item = pokemon_stim.get_feature_value('item')
+        if simulated.item is None:
+            simulated.set_most_likely_item_unless_revealed()
+
+        for move_feature in pokemon_stim.get_feature('move'):
+            simulated.add_move(move_feature.tag)
+        if len(simulated.moves) < 4:
+            simulated.set_likely_moves_unless_revealed()
+
+        simulated.volatile_statuses = [status for status in pokemon_stim.get_feature_value('volatile_status')]
+
+        simulated.boosts = {
+            constants.ACCURACY: pokemon_stim.get_feature_value('accuracy_boost'),
+            constants.EVASION: pokemon_stim.get_feature_value('evasion_boost'),
+            constants.ATTACK: pokemon_stim.get_feature_value('atk_boost'),
+            constants.DEFENSE: pokemon_stim.get_feature_value('def_boost'),
+            constants.SPECIAL_ATTACK: pokemon_stim.get_feature_value('spa_boost'),
+            constants.SPECIAL_DEFENSE: pokemon_stim.get_feature_value('spd_boost'),
+            constants.SPEED: pokemon_stim.get_feature_value('spe_boost')
+        }
+
+        simulated.terastallized = pokemon_stim.get_feature_value('terastallized')
+        simulated.types = [feature.val for feature in pokemon_stim.get_feature('type')]
+
+        return simulated
+
+    @classmethod
+    def _convert_opponent_benched_pokemon(cls, stimulus: Mapping[BattleConcept, nd.NumDict]) -> List[PokemonSimulation]:
+        benched_pokemon = []
+        team_stim = stimulus[BattleConcept.OPPONENT_TEAM]
+        for pokemon_chunk in team_stim.keys():
+            if pokemon_chunk.get_feature_value('active'):
+                continue
+            simulated_pokemon = cls._convert_opponent_pokemon(pokemon_chunk)
+            benched_pokemon.append(simulated_pokemon)
+
+        return benched_pokemon
 
 
 class BattleSimulationAdapter(Simulation):
