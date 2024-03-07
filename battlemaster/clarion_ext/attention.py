@@ -58,6 +58,12 @@ class GroupedChunkInstance(GroupedChunk):
             return features[0].val
         return [feature.val for feature in features]
 
+    def has_feature(self, feature_name: str) -> bool:
+        for feature in self.features:
+            if feature.tag == feature_name:
+                return True
+        return False
+
 
 class GroupedStimulusInput:
     def __init__(self, groups: List[str]):

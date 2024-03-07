@@ -67,10 +67,8 @@ class BattleStimulusAdapter(Simulation):
 
         user.active = cls._convert_player_active_pokemon(stimulus) if BattleConcept.ACTIVE_POKEMON in stimulus else None
         user.reserve = cls._convert_player_benched_pokemon(stimulus)
-        user.trapped = Effect.TRAPPED in battle.active_pokemon.effects if battle.active_pokemon is not None else False
-        user.side_conditions = defaultdict(lambda: 0,
-                                           {normalize_name(condition.name).replace("_", ""): value for condition, value
-                                            in battle.side_conditions.items()})
+        user.trapped = cls._check_trapped(stimulus, BattleConcept.ACTIVE_POKEMON) if user.active is not None else False
+        user.side_conditions = defaultdict(lambda: 0, {condition_chunk.cid: condition_chunk.features[0].val for condition_chunk in stimulus[BattleConcept.SIDE_CONDITIONS].keys()})
 
         return user
 
@@ -79,22 +77,33 @@ class BattleStimulusAdapter(Simulation):
         pokemon_stim: GroupedChunkInstance = get_only_value_from_numdict(stimulus[BattleConcept.ACTIVE_POKEMON])
         available_move_stim: nd.NumDict = stimulus[BattleConcept.AVAILABLE_MOVES]
 
-        simulated = cls._convert_base_pokemon(pokemon_stim)
+        simulated_pokemon = cls._convert_base_player_pokemon(pokemon_stim)
         for move_chunk in available_move_stim.keys():
-            simulated.add_move(move_chunk.cid)
+            simulated_pokemon.add_move(move_chunk.cid)
 
-        return simulated
+        return simulated_pokemon
 
     @classmethod
     def _convert_player_benched_pokemon(cls, stimulus: Mapping[BattleConcept, nd.NumDict]) -> List[PokemonSimulation]:
         benched_pokemon = []
         team_stim = stimulus[BattleConcept.TEAM]
-        for pokemon_chunk_instance in team_stim.keys():
-            pass    # TODO
+        for pokemon_chunk in team_stim.keys():
+            if pokemon_chunk.get_feature_value('active'):
+                continue
+            simulated_pokemon = cls._convert_base_player_pokemon(pokemon_chunk)
+            for move in pokemon_chunk.get_feature_value('move'):
+                simulated_pokemon.add_move(move)
+
         return benched_pokemon
 
     @staticmethod
-    def _convert_base_pokemon(pokemon_stim: GroupedChunkInstance) -> PokemonSimulation:
+    def _check_trapped(stimulus: Mapping[BattleConcept, nd.NumDict], concept: BattleConcept):
+        pokemon_chunk = get_only_value_from_numdict(stimulus[concept])
+        is_trapped = pokemon_chunk.get_feature_value('trapped')
+        return is_trapped if is_trapped is not None else False
+
+    @staticmethod
+    def _convert_base_player_pokemon(pokemon_stim: GroupedChunkInstance) -> PokemonSimulation:
         """
         Maps everything but moves
         """
@@ -126,6 +135,7 @@ class BattleStimulusAdapter(Simulation):
         simulated.types = [feature.val for feature in pokemon_stim.get_feature('type')]
 
         return simulated
+
 
 class BattleSimulationAdapter(Simulation):
     def __init__(self, battle_tag):

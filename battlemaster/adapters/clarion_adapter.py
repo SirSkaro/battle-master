@@ -22,7 +22,7 @@ class BattleConcept(str, Enum):
     OPPONENT_SIDE_CONDITIONS = 'opponent_side_conditions'
     WEATHER = 'weather'
     FIELD_EFFECTS = 'field_effects'
-    BATTLE = "BATTLE"
+    BATTLE = "battle"
 
     def __str__(self) -> str:
         return self.value
