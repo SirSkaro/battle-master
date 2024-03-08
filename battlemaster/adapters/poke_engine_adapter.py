@@ -69,8 +69,6 @@ class BattleStimulusAdapter(Simulation):
         simulation.wait = battle_metadata_stim.get_feature_value('wait')
         simulation.generation = 'gen9'
 
-        check_speed_ranges(simulation, '')
-
         return simulation
 
     @classmethod
@@ -253,8 +251,6 @@ class BattleSimulationAdapter(Simulation):
         simulation.force_switch = battle.force_switch
         simulation.wait = battle._wait
         simulation.generation = 'gen9'
-
-        check_speed_ranges(simulation, '')
 
         return simulation
 
