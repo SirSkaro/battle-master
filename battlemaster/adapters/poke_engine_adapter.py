@@ -10,7 +10,7 @@ from pyClarion import nd
 
 from .clarion_adapter import BattleConcept
 from ..clarion_ext.attention import GroupedChunkInstance
-from ..clarion_ext.numdicts_ext import get_chunk_from_numdict, get_only_value_from_numdict
+from ..clarion_ext.numdicts_ext import get_chunk_from_numdict, get_only_value_from_numdict, is_empty
 
 
 class Simulator:
@@ -57,9 +57,21 @@ class BattleStimulusAdapter(Simulation):
         simulation = BattleSimulationAdapter(battle_metadata_stim.get_feature_value('battle_tag'))
         simulation.user = cls._convert_player(stimulus)
         simulation.opponent = cls._convert_opponent(stimulus)
+
+        weather_stim = stimulus[BattleConcept.WEATHER]
+        simulation.weather = get_only_value_from_numdict(weather_stim).cid if not is_empty(weather_stim) else None
+
+        field_effects_stim = stimulus[BattleConcept.FIELD_EFFECTS]
+        simulation.field = get_only_value_from_numdict(field_effects_stim).cid if not is_empty(field_effects_stim) else None
+        simulation.trick_room = cls._check_trickroom(stimulus)
+        simulation.turn = battle_metadata_stim.get_feature_value('turn')
+        simulation.force_switch = battle_metadata_stim.get_feature_value('force_switch')
+        simulation.wait = battle_metadata_stim.get_feature_value('wait')
+        simulation.generation = 'gen9'
+
         check_speed_ranges(simulation, '')
 
-        # TODO weather and such
+        return simulation
 
     @classmethod
     def _convert_player(cls, stimulus: Mapping[BattleConcept, nd.NumDict]) -> Battler:
@@ -69,7 +81,7 @@ class BattleStimulusAdapter(Simulation):
         user.name = player_stim.get_feature_value('name')
         user.account_name = user.name
 
-        user.active = cls._convert_player_active_pokemon(stimulus) if len(stimulus[BattleConcept.ACTIVE_POKEMON]) > 0 else None
+        user.active = cls._convert_player_active_pokemon(stimulus) if not is_empty(stimulus[BattleConcept.ACTIVE_POKEMON]) else None
         user.reserve = cls._convert_player_benched_pokemon(stimulus)
         user.trapped = cls._check_trapped(stimulus, BattleConcept.ACTIVE_POKEMON) if user.active is not None else False
         user.side_conditions = defaultdict(lambda: 0, {condition_chunk.cid: condition_chunk.features[0].val for condition_chunk in stimulus[BattleConcept.SIDE_CONDITIONS].keys()})
@@ -83,7 +95,7 @@ class BattleStimulusAdapter(Simulation):
         user.name = player_stim.get_feature_value('name')
         user.account_name = user.name
 
-        pokemon_stim: GroupedChunkInstance = get_only_value_from_numdict(stimulus[BattleConcept.OPPONENT_ACTIVE_POKEMON]) if len(stimulus[BattleConcept.OPPONENT_ACTIVE_POKEMON]) > 0 else None
+        pokemon_stim: GroupedChunkInstance = get_only_value_from_numdict(stimulus[BattleConcept.OPPONENT_ACTIVE_POKEMON]) if not is_empty(stimulus[BattleConcept.OPPONENT_ACTIVE_POKEMON]) else None
         user.active = cls._convert_opponent_pokemon(pokemon_stim) if pokemon_stim is not None else None
         user.reserve = cls._convert_opponent_benched_pokemon(stimulus)
         user.trapped = cls._check_trapped(stimulus, BattleConcept.OPPONENT_ACTIVE_POKEMON) if user.active is not None else False
@@ -115,6 +127,14 @@ class BattleStimulusAdapter(Simulation):
             benched_pokemon.append(simulated_pokemon)
 
         return benched_pokemon
+
+    @staticmethod
+    def _check_trickroom(stimulus: Mapping[BattleConcept, nd.NumDict]):
+        field_effects_stim = stimulus[BattleConcept.FIELD_EFFECTS]
+        for effect_chunk in field_effects_stim.keys():
+            if effect_chunk.cid == 'trickroom':
+                return True
+        return False
 
     @staticmethod
     def _check_trapped(stimulus: Mapping[BattleConcept, nd.NumDict], concept: BattleConcept):
@@ -219,7 +239,6 @@ class BattleSimulationAdapter(Simulation):
         simulation = BattleSimulationAdapter(battle.battle_tag)
         simulation.user = cls._convert_player(battle)
         simulation.opponent = cls._convert_opponent(battle)
-        check_speed_ranges(simulation, '')
 
         if len(battle.weather) > 0:
             weather = next(iter(battle.weather))
@@ -234,6 +253,8 @@ class BattleSimulationAdapter(Simulation):
         simulation.force_switch = battle.force_switch
         simulation.wait = battle._wait
         simulation.generation = 'gen9'
+
+        check_speed_ranges(simulation, '')
 
         return simulation
 

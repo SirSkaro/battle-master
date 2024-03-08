@@ -78,7 +78,8 @@ class PerceptionFactory:
             cl.feature('force_switch', battle.force_switch),
             cl.feature('wait', battle._wait),
             cl.feature('format', battle._format),
-            cl.feature('is_team_preview', battle.in_team_preview)
+            cl.feature('is_team_preview', battle.in_team_preview),
+            cl.feature('turn', battle.turn)
         ]
         perception.add_chunk_instance_to_group(cl.chunk('metadata'), BattleConcept.BATTLE, features)
 

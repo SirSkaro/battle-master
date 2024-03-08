@@ -292,6 +292,7 @@ class TestPerceptionFactory:
         assert metadata.get_feature_value('wait')
         assert 'genXNU' == metadata.get_feature_value('format')
         assert metadata.get_feature_value('is_team_preview')
+        assert 12 == metadata.get_feature_value('turn')
 
     @staticmethod
     def _given_battle_metadata(battle):
@@ -300,6 +301,7 @@ class TestPerceptionFactory:
         battle._wait = True
         battle._format = 'genXNU'
         battle.in_team_preview = True
+        battle.turn = 12
 
     @staticmethod
     def _given_players(battle):

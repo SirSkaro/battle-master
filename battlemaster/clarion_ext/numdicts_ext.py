@@ -39,3 +39,7 @@ def filter_chunks_by_group(group: str, d: nd.NumDict) -> nd.NumDict:
 
 def get_only_value_from_numdict(d: nd.NumDict):
     return next(iter(d))
+
+
+def is_empty(d: nd.NumDict):
+    return len(d) == 0
