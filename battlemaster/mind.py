@@ -2,11 +2,12 @@ from typing import Tuple
 import re
 
 import pyClarion as cl
-from pyClarion import chunk, rule, feature, buffer, subsystem, chunks, features
+from pyClarion import chunk, rule, feature, buffer, subsystem, chunks
 from poke_env import gen_data
 
 from .clarion_ext.attention import NamedStimuli, AttentionFilter
 from .clarion_ext.pokemon_efficacy import EffectiveMoves
+from .clarion_ext.positioning import LogicalPosition
 from .adapters.clarion_adapter import BattleConcept
 
 pokemon_database = gen_data.GenData.from_gen(9)
@@ -110,6 +111,10 @@ def create_agent() -> Tuple[cl.Structure, cl.Construct]:
     pokemon_chunks = _define_pokemon_chunks()
 
     wm_interface = cl.RegisterArray.Interface(name="wm", slots=1, vops=("effective_available_moves",))
+    mcs_effort_gate_interface = cl.ParamSet.Interface(
+        name='effort',
+        pmkrs=('try_hard', 'autopilot')
+    )
 
     agent = cl.Structure(name=cl.agent('btlMaster'))
 
@@ -119,34 +124,51 @@ def create_agent() -> Tuple[cl.Structure, cl.Construct]:
             process=NamedStimuli()
         )
 
-        nacs = cl.Structure(name=subsystem("nacs"),
-                            assets=cl.Assets(
-                                type_chunks=type_chunks,
-                                move_chunks=move_chunks,
-                                pokemon_chunks=pokemon_chunks,
-                                rdb=rule_database)
-                            )
+        mcs_effort_gate = cl.Construct(
+            name=cl.buffer("mcs_effort_gate"),
+            process=cl.ParamSet(
+                controller=(cl.subsystem('mcs'), cl.terminus('effort')),
+                interface=mcs_effort_gate_interface)
+        )
 
-        cl.Construct(name=buffer("wm"),
-                     process=cl.RegisterArray(
-                        controller=(subsystem("nacs"), cl.terminus("wm_write")),
-                        sources=((subsystem("nacs"), cl.terminus("main")),),
-                        interface=wm_interface)
-                     )
+        mcs = cl.Structure(name=subsystem('mcs'))
+
+        nacs = cl.Structure(
+            name=subsystem("nacs"),
+            assets=cl.Assets(
+                type_chunks=type_chunks,
+                move_chunks=move_chunks,
+                pokemon_chunks=pokemon_chunks,
+                rdb=rule_database)
+        )
+
+        cl.Construct(
+            name=buffer("wm"),
+            process=cl.RegisterArray(
+                controller=(subsystem("nacs"), cl.terminus("wm_write")),
+                sources=((subsystem("nacs"), cl.terminus("main")),),
+                interface=wm_interface)
+        )
 
         acs = cl.Structure(name=subsystem("acs"))
+
+        with mcs:
+            cl.Construct(name=cl.chunks("self_team_in"), process=AttentionFilter(base=cl.MaxNodes(sources=[buffer("stimulus")]), attend_to=[BattleConcept.TEAM]))
+            cl.Construct(name=cl.chunks("opponent_team_in"), process=AttentionFilter(base=cl.MaxNodes(sources=[buffer("stimulus")]), attend_to=[BattleConcept.OPPONENT_TEAM]))
+            cl.Construct(name=cl.features('effort_main'), process=LogicalPosition(team_source=cl.chunks('self_team_in'), opponent_team_source=cl.chunks('opponent_team_in')))
+            cl.Construct(name=cl.terminus('effort'), process=cl.ActionSelector(source=cl.features('effort_main'), interface=mcs_effort_gate_interface, temperature=0.01))
 
         with nacs:
             cl.Construct(name=cl.chunks("opponent_type_in"), process=AttentionFilter(base=cl.MaxNodes(sources=[buffer("stimulus")]), attend_to=[BattleConcept.ACTIVE_OPPONENT_TYPE.value]))
             cl.Construct(name=cl.chunks("available_moves_in"), process=AttentionFilter(base=cl.MaxNodes(sources=[buffer("stimulus")]), attend_to=[BattleConcept.AVAILABLE_MOVES.value]))
             cl.Construct(name=cl.flow_tt("super_effective_available_moves"), process=EffectiveMoves(type_source=cl.chunks("opponent_type_in"), move_source=cl.chunks("available_moves_in"), move_chunks=nacs.assets.move_chunks))
-            cl.Construct(name=chunks("out"), process=cl.MaxNodes(sources=[cl.flow_tt("super_effective_available_moves")]))
+            cl.Construct(name=cl.chunks("out"), process=cl.MaxNodes(sources=[cl.flow_tt("super_effective_available_moves")]))
             cl.Construct(name=cl.terminus("main"), process=cl.ThresholdSelector(source=chunks("out"), threshold=0.1))
             cl.Construct(name=cl.terminus('wm_write'), process=cl.Constants(cl.nd.NumDict({feature(('wm', ('w', 0)), 'effective_available_moves'): 1.0, feature(("wm", ("r", 0)), "read"): 1.0}, default=0.0)))
 
         with acs:
             cl.Construct(name=cl.chunks('wm'), process=cl.MaxNodes(sources=[buffer("wm")]))
-            cl.Construct(name=chunks("out"), process=cl.MaxNodes(sources=[cl.chunks("wm")]))
+            cl.Construct(name=cl.chunks("out"), process=cl.MaxNodes(sources=[cl.chunks("wm")]))
             cl.Construct(name=cl.terminus("choose_move"), process=cl.BoltzmannSelector(source=cl.chunks("out"), temperature=0.2, threshold=0.))
 
     return agent, stimulus
