@@ -38,6 +38,11 @@ def acs_terminus(agent: cl.Structure) -> cl.Construct:
 
 
 @pytest.fixture
+def mcs_effort_gate(agent: cl.Structure) -> cl.Construct:
+    return agent[cl.buffer('mcs_effort_gate')]
+
+
+@pytest.fixture
 def pokemon_database() -> GenData:
     try:
         return GenData(9)

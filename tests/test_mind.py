@@ -5,6 +5,8 @@ import pyClarion as cl
 from poke_env.data import GenData
 
 from battlemaster.clarion_ext.attention import GroupedStimulusInput
+from battlemaster.adapters.clarion_adapter import BattleConcept
+
 
 @pytest.fixture
 def type_chunks(nacs: cl.Structure) -> cl.Chunks:
@@ -111,3 +113,19 @@ def test_acs_chooses_effective_move_from_available_moves(active_opponent_type: L
 
     assert chosen_move in acceptable_moves
 
+@pytest.mark.parametrize("team, opponent_team, expected_effort", [
+    (["psyduck", "pidgey"], ["caterpie"], "autopilot"),
+    (["pikachu"], ["raichu", "rhydon"], "try_hard"),
+])
+def test_mcs_outputs_effort(team: List[str], opponent_team: List[str], expected_effort: str, agent: cl.Structure, stimulus: cl.Construct, mcs_effort_gate: cl.Construct):
+    perception = GroupedStimulusInput([BattleConcept.TEAM, BattleConcept.OPPONENT_TEAM])
+    for pokemon in team:
+        perception.add_chunk_to_group(cl.chunk(pokemon), BattleConcept.TEAM)
+    for pokemon in opponent_team:
+        perception.add_chunk_to_group(cl.chunk(pokemon), BattleConcept.OPPONENT_TEAM)
+
+    stimulus.process.input(perception)
+    agent.step()
+    effort = next(iter(mcs_effort_gate.output))
+
+    assert expected_effort == effort.tag[1]
