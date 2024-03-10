@@ -40,8 +40,8 @@ class DecideEffort(cl.Process):
         self._opponent_team_source = opponent_team_source
 
     def call(self, inputs: Mapping[Any, nd.NumDict]) -> nd.NumDict:
-        effort = 'try_hard' if self._self_is_losing(inputs) else 'autopilot'
-        effort_feature = cl.feature(('effort', effort))
+        effort = Effort.TRY_HARD.value if self._self_is_losing(inputs) else Effort.AUTOPILOT.value
+        effort_feature = cl.feature((EFFORT_INTERFACE.name, effort))
         return nd.NumDict({effort_feature: 1.}, default=0.)
 
     def _self_is_losing(self, inputs: Mapping[Any, nd.NumDict]) -> bool:
