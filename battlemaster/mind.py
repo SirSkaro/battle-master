@@ -8,6 +8,7 @@ from poke_env import gen_data
 from .clarion_ext.attention import NamedStimuli, AttentionFilter
 from .clarion_ext.pokemon_efficacy import EffectiveMoves
 from .clarion_ext.positioning import DecideEffort, Effort, EFFORT_INTERFACE
+from .clarion_ext.working_memory import WM_INTERFACE, WmSource
 from .adapters.clarion_adapter import BattleConcept
 
 pokemon_database = gen_data.GenData.from_gen(9)
@@ -110,8 +111,6 @@ def create_agent() -> Tuple[cl.Structure, cl.Construct]:
     move_chunks = _define_move_chunks()
     pokemon_chunks = _define_pokemon_chunks()
 
-    wm_interface = cl.RegisterArray.Interface(name="wm", slots=1, vops=("effective_available_moves",))
-
     agent = cl.Structure(name=cl.agent('btlMaster'))
 
     with agent:
@@ -136,7 +135,7 @@ def create_agent() -> Tuple[cl.Structure, cl.Construct]:
             process=cl.RegisterArray(
                 controller=(subsystem("nacs"), cl.terminus("wm_write")),
                 sources=((subsystem("nacs"), cl.terminus("main")),),
-                interface=wm_interface)
+                interface=WM_INTERFACE)
         )
 
         acs = cl.Structure(name=subsystem("acs"))
@@ -159,10 +158,10 @@ def create_agent() -> Tuple[cl.Structure, cl.Construct]:
         with nacs:
             cl.Construct(name=cl.chunks("opponent_type_in"), process=AttentionFilter(base=cl.MaxNodes(sources=[buffer("stimulus")]), attend_to=[BattleConcept.ACTIVE_OPPONENT_TYPE.value]))
             cl.Construct(name=cl.chunks("available_moves_in"), process=AttentionFilter(base=cl.MaxNodes(sources=[buffer("stimulus")]), attend_to=[BattleConcept.AVAILABLE_MOVES.value]))
-            cl.Construct(name=cl.flow_tt("super_effective_available_moves"), process=EffectiveMoves(type_source=cl.chunks("opponent_type_in"), move_source=cl.chunks("available_moves_in"), move_chunks=nacs.assets.move_chunks))
-            cl.Construct(name=cl.chunks("out"), process=cl.MaxNodes(sources=[cl.flow_tt("super_effective_available_moves")]))
+            cl.Construct(name=cl.flow_tt("effective_available_moves"), process=EffectiveMoves(type_source=cl.chunks("opponent_type_in"), move_source=cl.chunks("available_moves_in"), move_chunks=nacs.assets.move_chunks))
+            cl.Construct(name=cl.chunks("out"), process=cl.MaxNodes(sources=[cl.flow_tt("effective_available_moves")]))
             cl.Construct(name=cl.terminus("main"), process=cl.ThresholdSelector(source=chunks("out"), threshold=0.1))
-            cl.Construct(name=cl.terminus('wm_write'), process=cl.Constants(cl.nd.NumDict({feature(('wm', ('w', 0)), 'effective_available_moves'): 1.0, feature(("wm", ("r", 0)), "read"): 1.0}, default=0.0)))
+            cl.Construct(name=cl.terminus('wm_write'), process=cl.Constants(cl.nd.NumDict({feature(('wm', ('w', 0)), WmSource.CANDIDATE_MOVES.value): 1.0, feature(("wm", ("r", 0)), "read"): 1.0}, default=0.0)))
 
         with acs:
             cl.Construct(name=cl.chunks('wm'), process=cl.MaxNodes(sources=[buffer("wm")]))
