@@ -1,7 +1,34 @@
 from typing import Mapping, Any, List
+from enum import Enum, auto
 
 import pyClarion as cl
 from pyClarion import nd
+
+
+class Effort(str, Enum):
+    TRY_HARD = 'try_hard', 0
+    AUTOPILOT = 'autopilot', 1
+
+    def __new__(cls, *args, **kwargs):
+        obj = str.__new__(cls)
+        obj._value_ = args[0]
+        return obj
+
+    def __init__(self, _: str, index: int):
+        self._index = index
+
+    def __str__(self) -> str:
+        return self.value
+
+    @property
+    def index(self):
+        return self._index
+
+
+EFFORT_INTERFACE = cl.ParamSet.Interface(
+    name='effort',
+    pmkrs=tuple(effort.value for effort in Effort)
+)
 
 
 class DecideEffort(cl.Process):

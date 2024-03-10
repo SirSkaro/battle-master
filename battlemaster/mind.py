@@ -7,7 +7,7 @@ from poke_env import gen_data
 
 from .clarion_ext.attention import NamedStimuli, AttentionFilter
 from .clarion_ext.pokemon_efficacy import EffectiveMoves
-from .clarion_ext.positioning import DecideEffort
+from .clarion_ext.positioning import DecideEffort, Effort, EFFORT_INTERFACE
 from .adapters.clarion_adapter import BattleConcept
 
 pokemon_database = gen_data.GenData.from_gen(9)
@@ -111,11 +111,6 @@ def create_agent() -> Tuple[cl.Structure, cl.Construct]:
     pokemon_chunks = _define_pokemon_chunks()
 
     wm_interface = cl.RegisterArray.Interface(name="wm", slots=1, vops=("effective_available_moves",))
-    mcs_effort_gate_interface = cl.ParamSet.Interface(
-        name='effort',
-        pmkrs=('try_hard', 'autopilot'),
-    )
-    #mcs_effort_gate_interface._defaults = (cl.feature(('effort', 'w'), 'upd'),)
 
     agent = cl.Structure(name=cl.agent('btlMaster'))
 
@@ -152,13 +147,13 @@ def create_agent() -> Tuple[cl.Structure, cl.Construct]:
             cl.Construct(name=cl.features('effort'), process=DecideEffort(team_source=cl.chunks('self_team_in'), opponent_team_source=cl.chunks('opponent_team_in')))
             cl.Construct(name=cl.features('effort_gate_write'), process=cl.Constants(cl.nd.NumDict({cl.feature(('effort', 'w'), 'upd'): 1.0}, default=0.0)))
             cl.Construct(name=cl.features('effort_main'), process=cl.MaxNodes(sources=[cl.features('effort'), cl.features('effort_gate_write')]))
-            cl.Construct(name=cl.terminus('effort'), process=cl.ActionSelector(source=cl.features('effort_main'), interface=mcs_effort_gate_interface, temperature=0.01))
+            cl.Construct(name=cl.terminus('effort'), process=cl.ActionSelector(source=cl.features('effort_main'), interface=EFFORT_INTERFACE, temperature=0.01))
 
         cl.Construct(
             name=cl.buffer("mcs_effort_gate"),
             process=cl.ParamSet(
                 controller=(cl.subsystem('mcs'), cl.terminus('effort')),
-                interface=mcs_effort_gate_interface)
+                interface=EFFORT_INTERFACE)
         )
 
         with nacs:
