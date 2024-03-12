@@ -27,14 +27,25 @@ class BattleMasterPlayer(Player):
         self.logger.info("I couldn't decide on an action. I'm picking a random action")
         return self.choose_random_move(battle)
 
-    def _select_move(self, battle: Battle, move_name: str) -> BattleOrder:
-        move_names = [move.id for move in battle.available_moves]
-        if move_name not in move_names:
-            self.logger.warning(f"Attempted to choose {move_name}, but it's not one of the available moves: {move_names}. Choosing a random action instead.")
-            return self.choose_random_move(battle)
+    def _select_move(self, battle: Battle, order: str) -> BattleOrder:
+        if self._is_available_move(battle, order):
+            move_to_choose = [move for move in battle.available_moves if move.id == order][0]
+            return self.create_order(move_to_choose)
 
-        move_to_choose = [move for move in battle.available_moves if move.id == move_name][0]
-        return self.create_order(move_to_choose)
+        elif self._is_available_switch(battle, order):
+            switch_to_choose = [pokemon for pokemon in battle.available_switches if pokemon.species == order or pokemon.base_species == order][0]
+            return self.create_order(switch_to_choose)
+
+        self.logger.warning(f"Attempted to choose {order}, but it's not one of the available moves or switches. Choosing a random action instead.")
+        return self.choose_random_move(battle)
+
+    def _is_available_move(self, battle: Battle, order: str) -> bool:
+        move_names = [move.id for move in battle.available_moves]
+        return order in move_names
+
+    def _is_available_switch(self, battle: Battle, order: str):
+        pokemon_names = [pokemon.species for pokemon in battle.available_switches] + [pokemon.base_species for pokemon in battle.available_switches]
+        return order in pokemon_names
 
 
 class MaxDamagePlayer(Player):

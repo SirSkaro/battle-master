@@ -9,7 +9,10 @@ from .clarion_ext.attention import NamedStimuli, AttentionFilter
 from .clarion_ext.pokemon_efficacy import EffectiveMoves
 from .clarion_ext.positioning import DecideEffort, Effort, EFFORT_INTERFACE
 from .clarion_ext.working_memory import WM_INTERFACE, WmSource
+from .clarion_ext.simulation import MentalSimulation
+from .clarion_ext.filters import ReasoningPath
 from .adapters.clarion_adapter import BattleConcept
+from .adapters.poke_engine_adapter import Simulator
 
 pokemon_database = gen_data.GenData.from_gen(9)
 
@@ -121,13 +124,21 @@ def create_agent() -> Tuple[cl.Structure, cl.Construct]:
 
         mcs = cl.Structure(name=subsystem('mcs'))
 
+        cl.Construct(
+            name=cl.buffer("mcs_effort_gate"),
+            process=cl.ParamSet(
+                controller=(cl.subsystem('mcs'), cl.terminus('effort')),
+                interface=EFFORT_INTERFACE)
+        )
+
         nacs = cl.Structure(
             name=subsystem("nacs"),
             assets=cl.Assets(
                 type_chunks=type_chunks,
                 move_chunks=move_chunks,
                 pokemon_chunks=pokemon_chunks,
-                rdb=rule_database)
+                rdb=rule_database,
+                mental_simulator=Simulator())
         )
 
         cl.Construct(
@@ -148,19 +159,26 @@ def create_agent() -> Tuple[cl.Structure, cl.Construct]:
             cl.Construct(name=cl.features('effort_main'), process=cl.MaxNodes(sources=[cl.features('effort'), cl.features('effort_gate_write')]))
             cl.Construct(name=cl.terminus('effort'), process=cl.ActionSelector(source=cl.features('effort_main'), interface=EFFORT_INTERFACE, temperature=0.01))
 
-        cl.Construct(
-            name=cl.buffer("mcs_effort_gate"),
-            process=cl.ParamSet(
-                controller=(cl.subsystem('mcs'), cl.terminus('effort')),
-                interface=EFFORT_INTERFACE)
-        )
-
         with nacs:
             cl.Construct(name=cl.chunks("opponent_type_in"), process=AttentionFilter(base=cl.MaxNodes(sources=[buffer("stimulus")]), attend_to=[BattleConcept.ACTIVE_OPPONENT_TYPE.value]))
             cl.Construct(name=cl.chunks("available_moves_in"), process=AttentionFilter(base=cl.MaxNodes(sources=[buffer("stimulus")]), attend_to=[BattleConcept.AVAILABLE_MOVES.value]))
-            cl.Construct(name=cl.flow_tt("effective_available_moves"), process=EffectiveMoves(type_source=cl.chunks("opponent_type_in"), move_source=cl.chunks("available_moves_in"), move_chunks=nacs.assets.move_chunks))
-            cl.Construct(name=cl.chunks("out"), process=cl.MaxNodes(sources=[cl.flow_tt("effective_available_moves")]))
-            cl.Construct(name=cl.terminus("main"), process=cl.ThresholdSelector(source=chunks("out"), threshold=0.1))
+            cl.Construct(name=cl.flow_tt("effective_available_moves"),
+                         process=ReasoningPath(
+                             base=EffectiveMoves(type_source=cl.chunks("opponent_type_in"), move_source=cl.chunks("available_moves_in"), move_chunks=nacs.assets.move_chunks),
+                             controller=cl.buffer("mcs_effort_gate"),
+                             interface=EFFORT_INTERFACE,
+                             pidx=Effort.AUTOPILOT.index))
+
+            cl.Construct(name=cl.chunks("generate_and_test"),
+                         process=ReasoningPath(
+                             base=MentalSimulation(stimulus_source=cl.buffer('stimulus'), simulator=nacs.assets.mental_simulator),
+                             controller=cl.buffer("mcs_effort_gate"),
+                             interface=EFFORT_INTERFACE,
+                             pidx=Effort.TRY_HARD.index
+                         ))
+
+            cl.Construct(name=cl.chunks("out"), process=cl.MaxNodes(sources=[cl.flow_tt("effective_available_moves"), cl.chunks("generate_and_test")]))
+            cl.Construct(name=cl.terminus("main"), process=cl.ThresholdSelector(source=chunks("out"), threshold=0.001))
             cl.Construct(name=cl.terminus('wm_write'), process=cl.Constants(cl.nd.NumDict({feature(('wm', ('w', 0)), WmSource.CANDIDATE_MOVES.value): 1.0, feature(("wm", ("r", 0)), "read"): 1.0}, default=0.0)))
 
         with acs:

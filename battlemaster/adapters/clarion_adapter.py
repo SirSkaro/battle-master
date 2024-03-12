@@ -45,7 +45,7 @@ class MindAdapter:
 
     def choose_action(self) -> Optional[str]:
         acs_terminus = self._mind[cl.subsystem('acs')][cl.terminus("choose_move")]
-        acs_output = [move_name.cid for move_name in acs_terminus.output.keys()]
+        acs_output = [action_chunk.cid for action_chunk in acs_terminus.output.keys()]
         return acs_output[0] if len(acs_output) > 0 else None
 
 

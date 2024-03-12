@@ -1,10 +1,13 @@
 from typing import Tuple, List
 
 import pytest
+from pytest import MonkeyPatch
 import pyClarion as cl
+from pyClarion import nd
 from poke_env.data import GenData
 
 from battlemaster.clarion_ext.attention import GroupedStimulusInput
+from battlemaster.clarion_ext.simulation import MentalSimulation
 from battlemaster.adapters.clarion_adapter import BattleConcept
 
 
@@ -117,7 +120,10 @@ def test_acs_chooses_effective_move_from_available_moves(active_opponent_type: L
     (["psyduck", "pidgey"], ["caterpie"], "autopilot"),
     (["pikachu"], ["raichu", "rhydon"], "try_hard"),
 ])
-def test_mcs_outputs_effort(team: List[str], opponent_team: List[str], expected_effort: str, agent: cl.Structure, stimulus: cl.Construct, mcs_effort_gate: cl.Construct):
+def test_mcs_outputs_effort(team: List[str], opponent_team: List[str], expected_effort: str, agent: cl.Structure,
+                            stimulus: cl.Construct, mcs_effort_gate: cl.Construct, monkeypatch: MonkeyPatch):
+    monkeypatch.setattr(MentalSimulation, 'call', lambda _self, inputs: nd.NumDict(default=0.))
+
     perception = GroupedStimulusInput([BattleConcept.TEAM, BattleConcept.OPPONENT_TEAM])
     for pokemon in team:
         perception.add_chunk_to_group(cl.chunk(pokemon), BattleConcept.TEAM)

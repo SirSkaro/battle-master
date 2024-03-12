@@ -159,7 +159,7 @@ class BattleStimulusAdapter(Simulation):
         simulated.max_hp = pokemon_stim.get_feature_value('max_hp')
         simulated.item = pokemon_stim.get_feature_value('item')
         simulated.ability = pokemon_stim.get_feature_value('ability')
-        simulated.volatile_statuses = [status for status in pokemon_stim.get_feature_value('volatile_status')]
+        simulated.volatile_statuses = [status_feature.val for status_feature in pokemon_stim.get_feature('volatile_status')]
         simulated.boosts = {
             constants.ACCURACY: pokemon_stim.get_feature_value('accuracy_boost'),
             constants.EVASION: pokemon_stim.get_feature_value('evasion_boost'),
@@ -180,7 +180,7 @@ class BattleStimulusAdapter(Simulation):
         simulated.fainted = pokemon_stim.get_feature_value('fainted')
         simulated.status = pokemon_stim.get_feature_value('status')
         simulated.set_most_likely_spread()
-        simulated.hp = (pokemon_stim.get_feature_value('hp') / 100.0) * simulated.max_hp
+        simulated.hp = (pokemon_stim.get_feature_value('hp_percentage') / 100.0) * simulated.max_hp
 
         simulated.ability = pokemon_stim.get_feature_value('ability')
         if simulated.ability is None:
@@ -195,7 +195,7 @@ class BattleStimulusAdapter(Simulation):
         if len(simulated.moves) < 4:
             simulated.set_likely_moves_unless_revealed()
 
-        simulated.volatile_statuses = [status for status in pokemon_stim.get_feature_value('volatile_status')]
+        simulated.volatile_statuses = [status_feature.val for status_feature in pokemon_stim.get_feature('volatile_status')]
 
         simulated.boosts = {
             constants.ACCURACY: pokemon_stim.get_feature_value('accuracy_boost'),

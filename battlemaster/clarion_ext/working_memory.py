@@ -19,3 +19,4 @@ WM_INTERFACE = cl.RegisterArray.Interface(
 
 def format_contents(wm: cl.Construct) -> str:
     return ' | '.join([str(cell.store) for cell in wm.process.cells])
+
