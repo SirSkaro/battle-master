@@ -54,3 +54,15 @@ def test_normalizes_move_weights(process: EffectiveMoves):
     assert result[cl.chunk('watergun')] == 1.0
     assert result[cl.chunk('rockthrow')] == 0.5
     assert result[cl.chunk('vinewhip')] == 0.25
+
+
+def test_assumes_normal_efficacy_for_unknown_move(process: EffectiveMoves):
+    inputs = {
+        cl.buffer('opponent_type'): {cl.chunk(type): 1. for type in ('dragon', 'steel')},
+        cl.buffer('available_moves'): nd.NumDict({cl.chunk('recharge'): 1.}, default=0.)
+    }
+
+    result = process.call(inputs)
+
+    assert result[cl.chunk('recharge')] == 1.
+

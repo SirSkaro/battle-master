@@ -1,4 +1,5 @@
 from typing import Mapping, Any, List
+import logging
 
 import pyClarion as cl
 from pyClarion import nd
@@ -19,6 +20,7 @@ class EffectiveMoves(cl.Process):
         self._move_source = move_source
         self._move_chunks = move_chunks
         self._type_chart = GenData.from_gen(9).type_chart
+        self._logger = logging.getLogger(f"{__name__}")
 
     def call(self, inputs: Mapping[Any, nd.NumDict]) -> nd.NumDict:
         result = nd.MutableNumDict(default=0.0)
@@ -26,6 +28,11 @@ class EffectiveMoves(cl.Process):
         moves = inputs[cl.expand_address(self.client, self._move_source)]
 
         for move in moves.keys():
+            if move not in self._move_chunks:
+                result[move] = 1.0
+                self._logger.warning(f"Encountered unknown move {move}. Assuming normal efficacy.")
+                continue
+
             move_type = get_feature_value_by_name('type', move, self._move_chunks)
             damage_multiplier = self._get_efficacy(move_type, [type.cid for type in defending_type.keys()])
             result[move] = damage_multiplier

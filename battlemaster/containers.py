@@ -19,6 +19,9 @@ class ShowdownEventFilter(logging.Filter):
         self._record_regex = re.compile(f'\\|{regex}\\|')
 
     def filter(self, record: logging.LogRecord) -> bool:
+        if record.levelno >= logging.WARN:
+            return True
+
         log_message = record.getMessage()
         return self._record_regex.search(log_message) is None
 
