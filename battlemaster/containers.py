@@ -88,7 +88,8 @@ def _configure_benchmark_player(config: providers.Configuration, provides: Type)
         provides,
         config,
         server_configuration=server_config,
-        max_concurrent_battles=config.agent.max_concurrent_battles.as_int()()
+        max_concurrent_battles=config.agent.max_concurrent_battles.as_int()(),
+        start_listening=False
     )
 
 

@@ -6,6 +6,7 @@ from typing import Dict
 
 from dependency_injector.wiring import Provide, inject
 from poke_env.player import Player
+from poke_env.concurrency import POKE_LOOP
 
 from .containers import Container
 
@@ -39,12 +40,19 @@ async def challenge_opponent(opponent: str, agent: Player = Provide[Container.pl
 
 
 @inject
-async def benchmark(number_battles: int, benchmark_agent: str,
+async def benchmark(number_battles: int, benchmark_agent_name: str,
                     agent: Player = Provide[Container.player],
                     benchmark_agents: Dict[str, Player] = Provide[Container.benchmark_agents]):
     logger = logging.getLogger(f"{__name__}")
-    logger.info(f"Benchmarking {agent.username} against {benchmark_agent}")
-    await agent.battle_against(benchmark_agents[benchmark_agent], number_battles)
+    logger.info(f"Benchmarking {agent.username} against {benchmark_agent_name}")
+
+    benchmark_agent = benchmark_agents[benchmark_agent_name]
+    benchmark_agent.ps_client._listening_coroutine = asyncio.run_coroutine_threadsafe(
+        benchmark_agent.ps_client.listen(), POKE_LOOP
+    )
+    await benchmark_agent.ps_client.wait_for_login()
+
+    await agent.battle_against(benchmark_agent, number_battles)
     logger.info(f'Agent won {agent.n_won_battles} / {number_battles} battles {agent.n_won_battles/number_battles}%')
 
 
