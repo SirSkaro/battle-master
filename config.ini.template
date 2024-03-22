@@ -6,3 +6,6 @@ auth_url=
 
 [agent]
 max_concurrent_battles=10
+
+[log]
+showdown_event_ignore=request,move,t:,switch,turn,updatesearch,player,init,j,pm,updateuser,challstr

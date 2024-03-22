@@ -18,7 +18,7 @@ class BattleMasterPlayer(Player):
         perception = self._mind.perceive(battle)
         chosen_move = self._mind.choose_action()
 
-        self.logger.info(f'I see {perception}')
+        self.logger.debug(f'I see {perception}')
 
         if chosen_move is not None:
             self.logger.info(f"I'm choosing {chosen_move}")

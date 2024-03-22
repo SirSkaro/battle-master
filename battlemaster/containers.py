@@ -1,5 +1,7 @@
+import logging
 import logging.config
-from typing import Type
+from typing import Type, List
+import re
 
 from dependency_injector import containers, providers
 from poke_env import AccountConfiguration, ServerConfiguration
@@ -10,13 +12,25 @@ from .agents import BattleMasterPlayer, MaxDamagePlayer, ExpectiminimaxPlayer
 from .adapters.clarion_adapter import MindAdapter, PerceptionFactory
 
 
+class ShowdownEventFilter(logging.Filter):
+    def __init__(self, events_to_ignore: List[str] = []):
+        super().__init__()
+        regex = '|'.join(events_to_ignore)
+        self._record_regex = re.compile(f'\\|{regex}\\|')
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        log_message = record.getMessage()
+        return self._record_regex.search(log_message) is None
+
+
 class PlayerSingleton(providers.Provider):
 
-    __slots__ = ("_factory",)
+    __slots__ = ("_factory", "_config")
 
-    def __init__(self, provides, *args, **kwargs):
+    def __init__(self, provides, config: providers.Configuration, *args, **kwargs):
         self._factory = providers.Singleton(provides, *args, **kwargs)
         super().__init__()
+        self._config = config
 
     def __deepcopy__(self, memo):
         copied = memo.get(id(self))
@@ -25,6 +39,7 @@ class PlayerSingleton(providers.Provider):
 
         copied = self.__class__(
             self._factory.provides,
+            self._config,
             *providers.deepcopy(self._factory.args, memo),
             **providers.deepcopy(self._factory.kwargs, memo),
         )
@@ -39,8 +54,11 @@ class PlayerSingleton(providers.Provider):
         yield from super().related
 
     def _provide(self, args, kwargs):
+        log_ignore = self._config.log.showdown_event_ignore().split(',')
+
         player: Player = self._factory(*args, **kwargs)
         player.logger.handlers.clear()
+        player.logger.addFilter(ShowdownEventFilter(log_ignore))
         return player
 
 
@@ -56,6 +74,7 @@ def _configure_player(config: providers.Configuration) -> PlayerSingleton:
     mind = _configure_mind()
     return PlayerSingleton(
         BattleMasterPlayer,
+        config,
         mind=mind,
         account_configuration=account_config,
         server_configuration=server_config,
@@ -67,6 +86,7 @@ def _configure_benchmark_player(config: providers.Configuration, provides: Type)
     _, server_config = _get_showdown_config(config)
     return PlayerSingleton(
         provides,
+        config,
         server_configuration=server_config,
         max_concurrent_battles=config.agent.max_concurrent_battles.as_int()()
     )
