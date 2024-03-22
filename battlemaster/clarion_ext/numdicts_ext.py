@@ -6,10 +6,16 @@ from pyClarion import nd
 from .attention import GroupedChunk
 
 
-def normalize(d: nd.NumDict) -> nd.NumDict:
+def relative_normalize(d: nd.NumDict) -> nd.NumDict:
     if len(d) == 0:
         return d
     return d / nd.reduce_max(d)
+
+
+def absolute_normalize(d: nd.NumDict, divisor: float) -> nd.NumDict:
+    if len(d) == 0:
+        return d
+    return d / divisor
 
 
 def get_feature_value_by_name(feature_name: str, chunk: cl.chunk, chunk_db: cl.Chunks) -> str:
