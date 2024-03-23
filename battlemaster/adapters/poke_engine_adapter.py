@@ -4,7 +4,6 @@ from collections import defaultdict
 from poke_env.environment import Battle, Pokemon, Effect, Field
 from poke_engine import Battle as Simulation, Battler, Pokemon as PokemonSimulation, constants, StateMutator
 from poke_engine.select_best_move import get_payoff_matrix, pick_safest
-from poke_engine.battle_modifier import check_speed_ranges
 from poke_engine.helpers import normalize_name
 from pyClarion import nd
 

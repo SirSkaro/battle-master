@@ -63,7 +63,7 @@ class PerceptionFactory:
 
         self._add_opponent_active_pokemon(battle.opponent_active_pokemon, perception)
         self._add_active_opponent_pokemon_types(battle, perception)
-        self._add_opponent_team(battle.opponent_team, perception)
+        self._add_opponent_team(battle.opponent_team, battle.opponent_active_pokemon, perception)
         self._add_side_conditions(battle.opponent_side_conditions, BattleConcept.OPPONENT_SIDE_CONDITIONS, perception)
 
         self._add_weather(battle.weather, perception)
@@ -138,12 +138,12 @@ class PerceptionFactory:
     def _add_opponent_active_pokemon(cls, pokemon: Pokemon, perception: GroupedStimulusInput):
         if pokemon is None:
             return
-        cls._add_opponent_pokemon(pokemon, BattleConcept.OPPONENT_ACTIVE_POKEMON, perception)
+        cls._add_opponent_pokemon(pokemon, BattleConcept.OPPONENT_ACTIVE_POKEMON, perception, True)
 
     @classmethod
-    def _add_opponent_team(cls, team: Dict[str, Pokemon], perception: GroupedStimulusInput):
+    def _add_opponent_team(cls, team: Dict[str, Pokemon], active_pokemon: Pokemon, perception: GroupedStimulusInput):
         for pokemon in team.values():
-            if pokemon.active:
+            if active_pokemon is not None and pokemon.species == active_pokemon.species:
                 continue
             cls._add_opponent_pokemon(pokemon, BattleConcept.OPPONENT_TEAM, perception)
 
@@ -185,12 +185,12 @@ class PerceptionFactory:
         perception.add_chunk_instance_to_group(cl.chunk(pokemon.species), group, features)
 
     @classmethod
-    def _add_opponent_pokemon(cls, pokemon: Pokemon, group: str, perception: GroupedStimulusInput):
+    def _add_opponent_pokemon(cls, pokemon: Pokemon, group: str, perception: GroupedStimulusInput, is_active: bool = False):
         features = [
             *[cl.feature('type', cls._normalize_name(typing)) for typing in pokemon.types if typing is not None],
             cl.feature('level', pokemon.level),
             cl.feature('fainted', pokemon.fainted),
-            cl.feature('active', pokemon.active),
+            cl.feature('active', is_active),  # compensating for a bug where the Pokemon object's active flag will be false even if it's active.
             cl.feature('status', cls._normalize_name(pokemon.status) if pokemon.status is not None else None),
             *[cl.feature('volatile_status', cls._normalize_name(effect)) for effect in pokemon.effects.keys()],
             cl.feature('hp_percentage', pokemon.current_hp),

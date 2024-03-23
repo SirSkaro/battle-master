@@ -41,10 +41,10 @@ class DecideEffort(cl.Process):
         self._opponent_team_source = opponent_team_source
 
     def call(self, inputs: Mapping[Any, nd.NumDict]) -> nd.NumDict:
-        effort = Effort.TRY_HARD.value if self._self_is_losing(inputs) else Effort.AUTOPILOT.value
-        effort_feature = cl.feature((EFFORT_INTERFACE.name, effort))
-        self._logger.debug(f"I'm going to {effort}")
-        return nd.NumDict({effort_feature: 1.}, default=0.)
+        effort_to_activate = Effort.TRY_HARD.value if self._self_is_losing(inputs) else Effort.AUTOPILOT.value
+        effort_to_activate_feature = cl.feature((EFFORT_INTERFACE.name, effort_to_activate))
+        self._logger.debug(f"I'm going to {effort_to_activate}")
+        return nd.NumDict({effort_to_activate_feature: 1.}, default=0.)
 
     def _self_is_losing(self, inputs: Mapping[Any, nd.NumDict]) -> bool:
         team: nd.NumDict = inputs[cl.expand_address(self.client, self._team_source)]
