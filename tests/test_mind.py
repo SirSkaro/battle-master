@@ -121,7 +121,7 @@ def test_acs_chooses_effective_move_from_available_moves(active_opponent_type: L
 
 
 @pytest.mark.parametrize("team, opponent_team, expected_effort", [
-    ([("psyduck", False), ("pidgey", False), ("pidov", False)], [("caterpie", True), ("kakuna", True), ("beedrill", True)], "autopilot"),
+    ([("psyduck", False), ("pidgey", False), ("pidov", False), ("staravia", False)], [("caterpie", True), ("kakuna", True), ("beedrill", True)], "autopilot"),
     ([("pikachu", False)], [("raichu", False), ("rhydon", False)], "try_hard"),
 ])
 def test_mcs_outputs_effort(team: List[str], opponent_team: List[Tuple[str, bool]], expected_effort: str, agent: cl.Structure,

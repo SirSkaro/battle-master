@@ -1,5 +1,6 @@
-from typing import Mapping, Any, List
-from enum import Enum, auto
+from typing import Mapping, Any
+from enum import Enum
+import logging
 
 import pyClarion as cl
 from pyClarion import nd
@@ -42,16 +43,19 @@ class DecideEffort(cl.Process):
     def call(self, inputs: Mapping[Any, nd.NumDict]) -> nd.NumDict:
         effort = Effort.TRY_HARD.value if self._self_is_losing(inputs) else Effort.AUTOPILOT.value
         effort_feature = cl.feature((EFFORT_INTERFACE.name, effort))
+        self._logger.debug(f"I'm going to {effort}")
         return nd.NumDict({effort_feature: 1.}, default=0.)
 
     def _self_is_losing(self, inputs: Mapping[Any, nd.NumDict]) -> bool:
         team: nd.NumDict = inputs[cl.expand_address(self.client, self._team_source)]
         opponent_team: nd.NumDict = inputs[cl.expand_address(self.client, self._opponent_team_source)]
 
-        non_fainted_count = self._count_fainted(team, False)
-        opponent_non_fainted_count = 6 - self._count_fainted(opponent_team, True)
+        usable_pokemon_count = self._count_fainted(team, False)
+        opponent_usable_pokemon_count = 6 - self._count_fainted(opponent_team, True)
 
-        return non_fainted_count < opponent_non_fainted_count
+        self._logger.debug(f"I have {usable_pokemon_count} usable Pokemon and my opponent has {opponent_usable_pokemon_count}")
+
+        return usable_pokemon_count <= opponent_usable_pokemon_count
 
     @staticmethod
     def _count_fainted(team: nd.NumDict, is_fainted: bool) -> int:
@@ -62,3 +66,7 @@ class DecideEffort(cl.Process):
                 count += 1
 
         return count
+
+    @property
+    def _logger(self):
+        return logging.getLogger(self.__class__.__name__)
