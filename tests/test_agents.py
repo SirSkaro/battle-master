@@ -8,6 +8,7 @@ import pyClarion as cl
 
 from battlemaster.adapters.clarion_adapter import MindAdapter, PerceptionFactory, BattleConcept
 from battlemaster.clarion_ext.attention import GroupedStimulusInput
+from battlemaster.clarion_ext.positioning import Effort
 
 
 def _given_move(name: str) -> Move:
@@ -74,7 +75,8 @@ class TestBattleMasterPlayerComponentTests:
     def player(self, mind_adapter: MindAdapter) -> BattleMasterPlayer:
         return BattleMasterPlayer(mind_adapter, start_listening=False)
 
-    def test_chooses_super_effective_move(self, player: BattleMasterPlayer, battle, perception_factory):
+    @pytest.mark.parametrize('given_effort', [Effort.AUTOPILOT], indirect=True)
+    def test_chooses_super_effective_move(self, player: BattleMasterPlayer, battle, perception_factory, given_effort):
         battle.available_moves = [_given_move('darkpulse'), _given_move('bodyslam')]
         battle.opponent_active_pokemon = self._given_opposing_pokemon('ghost')
         self._given_perception(perception_factory, battle.available_moves, battle.opponent_active_pokemon)

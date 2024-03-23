@@ -48,4 +48,17 @@ class DecideEffort(cl.Process):
         team: nd.NumDict = inputs[cl.expand_address(self.client, self._team_source)]
         opponent_team: nd.NumDict = inputs[cl.expand_address(self.client, self._opponent_team_source)]
 
-        return len(team) < len(opponent_team)
+        non_fainted_count = self._count_fainted(team, False)
+        opponent_non_fainted_count = 6 - self._count_fainted(opponent_team, True)
+
+        return non_fainted_count < opponent_non_fainted_count
+
+    @staticmethod
+    def _count_fainted(team: nd.NumDict, is_fainted: bool) -> int:
+        count = 0
+
+        for pokemon in team.keys():
+            if is_fainted == pokemon.get_feature_value('fainted'):
+                count += 1
+
+        return count

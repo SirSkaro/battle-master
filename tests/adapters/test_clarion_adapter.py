@@ -180,9 +180,8 @@ class TestPerceptionFactory:
         assert 'hydropump' == moves[2]
         assert 'terablast' == moves[3]
 
-    def test_all_pokemon_in_team(self, team_perception: nd.NumDict):
-        assert 2 == len(team_perception)
-        assert cl.chunk('blastoise') in team_perception
+    def test_benched_pokemon_in_team(self, team_perception: nd.NumDict):
+        assert 1 == len(team_perception)
         assert cl.chunk('charizard') in team_perception
 
     def test_fainted_benched_pokemon_in_team_perception(self, team_perception: nd.NumDict):
@@ -255,9 +254,8 @@ class TestPerceptionFactory:
         assert 1 == len(opponent_active_pokemon_perception.get_feature('move'))
         assert 'closecombat' == opponent_active_pokemon_perception.get_feature_value('move')
 
-    def test_all_pokemon_in_opponent_team(self, opponent_team_perception: nd.NumDict):
-        assert 2 == len(opponent_team_perception)
-        assert cl.chunk('staraptor') in opponent_team_perception
+    def test_benched_pokemon_in_opponent_team(self, opponent_team_perception: nd.NumDict):
+        assert 1 == len(opponent_team_perception)
         assert cl.chunk('tornadus') in opponent_team_perception
 
     def test_fainted_benched_pokemon_in_opponent_team_perception(self, opponent_team_perception: nd.NumDict):

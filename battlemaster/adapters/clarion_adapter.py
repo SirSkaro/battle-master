@@ -118,6 +118,8 @@ class PerceptionFactory:
     @classmethod
     def _add_player_team(cls, team: Dict[str, Pokemon], perception: GroupedStimulusInput):
         for pokemon in team.values():
+            if pokemon.active:
+                continue
             cls._add_player_pokemon(pokemon, BattleConcept.TEAM, perception)
 
     @classmethod
@@ -141,6 +143,8 @@ class PerceptionFactory:
     @classmethod
     def _add_opponent_team(cls, team: Dict[str, Pokemon], perception: GroupedStimulusInput):
         for pokemon in team.values():
+            if pokemon.active:
+                continue
             cls._add_opponent_pokemon(pokemon, BattleConcept.OPPONENT_TEAM, perception)
 
     @classmethod

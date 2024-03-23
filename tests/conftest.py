@@ -1,10 +1,13 @@
 from typing import Tuple
 
 import pytest
+from pytest import MonkeyPatch
 import pyClarion as cl
+from pyClarion import nd
 from poke_env.data import GenData
 
 from battlemaster import mind
+from battlemaster.clarion_ext.positioning import DecideEffort, EFFORT_INTERFACE
 
 
 @pytest.fixture
@@ -40,6 +43,13 @@ def acs_terminus(agent: cl.Structure) -> cl.Construct:
 @pytest.fixture
 def mcs_effort_gate(agent: cl.Structure) -> cl.Construct:
     return agent[cl.buffer('mcs_effort_gate')]
+
+
+@pytest.fixture
+def given_effort(request, monkeypatch: MonkeyPatch):
+    effort = request.param.value
+    effort_feature = cl.feature((EFFORT_INTERFACE.name, effort))
+    monkeypatch.setattr(DecideEffort, 'call', lambda _self, inputs: nd.NumDict({effort_feature: 1.}, default=0.))
 
 
 @pytest.fixture
