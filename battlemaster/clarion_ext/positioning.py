@@ -55,7 +55,7 @@ class DecideEffort(cl.Process):
 
         self._logger.debug(f"I have {usable_pokemon_count} usable Pokemon and my opponent has {opponent_usable_pokemon_count}")
 
-        return usable_pokemon_count <= opponent_usable_pokemon_count
+        return usable_pokemon_count < opponent_usable_pokemon_count
 
     @staticmethod
     def _count_fainted(team: nd.NumDict, is_fainted: bool) -> int:

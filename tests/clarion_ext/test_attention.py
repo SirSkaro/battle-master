@@ -21,6 +21,7 @@ class TestGroupedChunk:
         grouped_chunk = GroupedChunk.from_chunk(chunk, 'some group')
 
         assert chunk == grouped_chunk
+        assert grouped_chunk == chunk
 
     def test_membership_with_normal_chunk(self):
         chunk = cl.chunk('foo')
@@ -28,6 +29,19 @@ class TestGroupedChunk:
 
         assert grouped_chunk in {chunk: 1.}
         assert chunk in {grouped_chunk: 1.}
+
+    def test_equality_with_different_group_chunks(self):
+        grouped_chunk1 = GroupedChunk('foo', 'a')
+        grouped_chunk2 = GroupedChunk('foo', 'b')
+
+        assert grouped_chunk1 != grouped_chunk2
+
+    def test_membership_with_different_group_chunks(self):
+        grouped_chunk1 = GroupedChunk('foo', 'a')
+        grouped_chunk2 = GroupedChunk('foo', 'b')
+
+        assert grouped_chunk1 not in {grouped_chunk2: 1.}
+        assert grouped_chunk2 not in {grouped_chunk1: 1.}
 
 
 class TestGroupedChunkInstance:
@@ -45,6 +59,27 @@ class TestGroupedChunkInstance:
         grouped_chunk = GroupedChunkInstance.from_chunk(chunk, 'some group', [])
 
         assert chunk == grouped_chunk
+        assert grouped_chunk == chunk
+
+    def test_membership_with_normal_chunk(self):
+        chunk = cl.chunk('foo')
+        grouped_chunk = GroupedChunkInstance.from_chunk(chunk, 'some group', [])
+
+        assert grouped_chunk in {chunk: 1.}
+        assert chunk in {grouped_chunk: 1.}
+
+    def test_equality_with_different_group_chunks(self):
+        grouped_chunk1 = GroupedChunkInstance('foo', 'a', [])
+        grouped_chunk2 = GroupedChunkInstance('foo', 'b', [])
+
+        assert grouped_chunk1 != grouped_chunk2
+
+    def test_membership_with_different_group_chunks(self):
+        grouped_chunk1 = GroupedChunkInstance('foo', 'a', [])
+        grouped_chunk2 = GroupedChunkInstance('foo', 'b', [])
+
+        assert grouped_chunk1 not in {grouped_chunk2: 1.}
+        assert grouped_chunk2 not in {grouped_chunk1: 1.}
 
 
 class TestGroupedStimulusInput:

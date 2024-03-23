@@ -22,6 +22,17 @@ class GroupedChunk(cl.chunk):
         cls_name = type(self).__name__
         return "{}({}|{})".format(cls_name, self.cid, self.group)
 
+    def __eq__(self, other):
+        result = super().__eq__(other)
+        if not result:
+            return result
+        if isinstance(other, GroupedChunk):
+            result = result and other.group == self.group
+        return result
+
+    def __hash__(self):
+        return super().__hash__()
+
     @staticmethod
     def from_chunk(other: cl.chunk, group: str):
         return GroupedChunk(other.cid, group)
