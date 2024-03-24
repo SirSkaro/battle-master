@@ -39,7 +39,7 @@ class EffectiveMoves(cl.Process):
             result[move] = damage_multiplier
 
         result = nd.threshold(result, th=_EFFECTIVE_THRESHOLD, keep_default=True)
-        return absolute_normalize(result, _MAX_EFFECTIVENESS_MULTIPLIER * len(moves))
+        return absolute_normalize(result, _MAX_EFFECTIVENESS_MULTIPLIER)
 
     def _get_efficacy(self, attack_type: str, defending_types: List[str]) -> float:
         attack_type = PokemonType.from_name(attack_type)

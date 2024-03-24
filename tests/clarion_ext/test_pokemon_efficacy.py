@@ -49,9 +49,9 @@ class TestEffectiveMoves:
 
         result = process.call(inputs)
 
-        assert result[cl.chunk('watergun')] == 1.0 / 4
-        assert result[cl.chunk('rockthrow')] == 0.5 / 4
-        assert result[cl.chunk('vinewhip')] == 0.25 / 4
+        assert result[cl.chunk('watergun')] == 1.0
+        assert result[cl.chunk('rockthrow')] == 0.5
+        assert result[cl.chunk('vinewhip')] == 0.25
 
     def test_assumes_normal_efficacy_for_unknown_move(self, process: EffectiveMoves):
         inputs = {
