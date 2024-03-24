@@ -6,7 +6,7 @@ from pyClarion import nd
 from poke_env.environment import PokemonType
 from poke_env.data import GenData
 
-from .numdicts_ext import absolute_normalize, get_feature_value_by_name
+from .numdicts_ext import absolute_normalize, get_feature_value_by_name, get_features_by_name
 
 _EFFECTIVE_THRESHOLD = 0.9
 _MAX_EFFECTIVENESS_MULTIPLIER = 4.0
@@ -52,11 +52,13 @@ class EffectiveMoves(cl.Process):
 class EffectiveSwitches(cl.Process):
     _serves = cl.ConstructType.flow_tt
 
-    def __init__(self, type_source: cl.Symbol, switch_source: cl.Symbol):
+    def __init__(self, type_source: cl.Symbol, switch_source: cl.Symbol, pokemon_chunks: cl.Chunks):
         super().__init__(expected=[type_source, switch_source])
         self._type_source = type_source
         self._switch_source = switch_source
+        self._pokemon_chunks = pokemon_chunks
         self._type_chart = GenData.from_gen(9).type_chart
+        self._logger = logging.getLogger(f"{__name__}")
 
     def call(self, inputs: Mapping[Any, nd.NumDict]) -> nd.NumDict:
         result = nd.MutableNumDict(default=0.0)
@@ -65,9 +67,14 @@ class EffectiveSwitches(cl.Process):
 
         for switch in switches.keys():
             damage_multiplier = 1.0
-            switch_types = switch.get_feature('type')
+            if switch not in self._pokemon_chunks:
+                result[switch] = 1.0
+                self._logger.warning(f"Encountered unknown pokemon {switch}. Assuming normal efficacy.")
+                continue
+
+            switch_types = [feature.val for feature in get_features_by_name('type', switch, self._pokemon_chunks)]
             for switch_type in switch_types:
-                damage_multiplier *= self._get_efficacy(switch_type.val, [type.cid for type in defending_type.keys()])
+                damage_multiplier *= self._get_efficacy(switch_type, [type.cid for type in defending_type.keys()])
             result[switch] = damage_multiplier
 
         result = nd.threshold(result, th=_EFFECTIVE_THRESHOLD, keep_default=True)

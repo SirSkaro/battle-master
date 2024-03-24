@@ -3,7 +3,7 @@ import pyClarion as cl
 from pyClarion import nd
 
 from battlemaster.clarion_ext.pokemon_efficacy import EffectiveMoves, EffectiveSwitches
-from battlemaster.clarion_ext.attention import GroupedChunkInstance
+from battlemaster.clarion_ext.attention import GroupedChunk
 
 
 class TestEffectiveMoves:
@@ -66,10 +66,22 @@ class TestEffectiveMoves:
 
 class TestEffectiveSwitches:
     @pytest.fixture
-    def process(self) -> EffectiveSwitches:
+    def pokemon_chunks(self) -> cl.Chunks:
+        chunks = cl.Chunks()
+        data = [('caterpie', ('bug',)), ('pidgey', ('normal', 'flying')), ('mankey', ('fighting',)),
+                ('bisharp', ('dark', 'steel')), ('blastoise', ('water',)), ('registeel', ('steel',))]
+
+        for name, types in data:
+            chunks.define(cl.chunk(name),
+                          *[cl.feature('type', type) for type in types])
+
+        return chunks
+
+    @pytest.fixture
+    def process(self, pokemon_chunks) -> EffectiveSwitches:
         type_source = cl.buffer('opponent_type')
         switch_source = cl.buffer('available_switches')
-        return EffectiveSwitches(type_source, switch_source)
+        return EffectiveSwitches(type_source, switch_source, pokemon_chunks)
 
     @pytest.mark.parametrize("opponent_type, expected_switches", [
         (("grass",), ['caterpie', 'pidgey', 'mankey', 'bisharp']),
@@ -79,11 +91,11 @@ class TestEffectiveSwitches:
         inputs = {
             cl.buffer('opponent_type'): {cl.chunk(type): 1. for type in opponent_type},
             cl.buffer('available_switches'): nd.NumDict(
-                {GroupedChunkInstance('caterpie', 'switches', [cl.feature('type', 'bug')]): 1.,
-                 GroupedChunkInstance('pidgey', 'switches', [cl.feature('type', 'flying'), cl.feature('type', 'normal')]): 1.,
-                 GroupedChunkInstance('blastoise', 'switches', [cl.feature('type', 'water')]): 1.,
-                 GroupedChunkInstance('mankey', 'switches', [cl.feature('type', 'fighting')]): 1.,
-                 GroupedChunkInstance('bisharp', 'switches', [cl.feature('type', 'steel'), cl.feature('type', 'dark')]): 1.},
+                {GroupedChunk('caterpie', 'switches'): 1.,
+                 GroupedChunk('pidgey', 'switches'): 1.,
+                 GroupedChunk('blastoise', 'switches'): 1.,
+                 GroupedChunk('mankey', 'switches'): 1.,
+                 GroupedChunk('bisharp', 'switches'): 1.},
                 default=0.)
         }
         result = process.call(inputs)
@@ -96,9 +108,9 @@ class TestEffectiveSwitches:
         inputs = {
             cl.buffer('opponent_type'): {cl.chunk(type): 1. for type in ('grass', 'dark')},
             cl.buffer('available_switches'): nd.NumDict(
-                {GroupedChunkInstance('caterpie', 'switches', [cl.feature('type', 'bug')]): 1.,
-                 GroupedChunkInstance('registeel', 'switches', [cl.feature('type', 'steel')]): 1.,
-                 GroupedChunkInstance('mankey', 'switches', [cl.feature('type', 'fighting')]): 1.,},
+                {GroupedChunk('caterpie', 'switches'): 1.,
+                 GroupedChunk('registeel', 'switches'): 1.,
+                 GroupedChunk('mankey', 'switches'): 1.},
                 default=0.)
         }
 

@@ -63,7 +63,7 @@ def test_pokemon_chunks_populated(pokemon_chunks: cl.Chunks, pokemon_database: G
 
 
 @pytest.mark.parametrize("expected_chunks", [
-    ('abra', [("type", "psychic"), ("type", None), ("hp", 25), ("attack", 20), ("defense", 15), ("special_attack", 105),
+    ('abra', [("type", "psychic"), ("hp", 25), ("attack", 20), ("defense", 15), ("special_attack", 105),
               ("special_defense", 55), ("speed", 90), ("weight", 19.5)]),
     ('diancie', [("type", "fairy"), ("type", "rock"), ("hp", 50), ("attack", 100), ("defense", 150),
                  ("special_attack", 100), ("special_defense", 150), ("speed", 50), ("weight", 8.8)]),

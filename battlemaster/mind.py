@@ -6,7 +6,7 @@ from pyClarion import chunk, rule, feature, buffer, subsystem, chunks
 from poke_env import gen_data
 
 from .clarion_ext.attention import NamedStimuli, AttentionFilter
-from .clarion_ext.pokemon_efficacy import EffectiveMoves
+from .clarion_ext.pokemon_efficacy import EffectiveMoves, EffectiveSwitches
 from .clarion_ext.positioning import DecideEffort, Effort, EFFORT_INTERFACE
 from .clarion_ext.working_memory import WM_INTERFACE, WmSource
 from .clarion_ext.simulation import MentalSimulation
@@ -96,8 +96,7 @@ def _define_pokemon_chunks() -> cl.Chunks:
         stats = pokemon['baseStats']
         pokemon_chunks.define(chunk(name),
                               feature('pokemon'),
-                              feature('type', typing[0].lower()),
-                              feature('type', typing[1].lower() if len(typing) > 1 else None),
+                              *[feature('type', type.lower()) for type in typing],
                               feature('hp', stats['hp']),
                               feature('attack', stats['atk']),
                               feature('defense', stats['def']),
@@ -160,11 +159,18 @@ def create_agent() -> Tuple[cl.Structure, cl.Construct]:
             cl.Construct(name=cl.terminus('effort'), process=cl.ActionSelector(source=cl.features('effort_main'), interface=EFFORT_INTERFACE, temperature=0.01))
 
         with nacs:
-            cl.Construct(name=cl.chunks("opponent_type_in"), process=AttentionFilter(base=cl.MaxNodes(sources=[buffer("stimulus")]), attend_to=[BattleConcept.ACTIVE_OPPONENT_TYPE.value]))
-            cl.Construct(name=cl.chunks("available_moves_in"), process=AttentionFilter(base=cl.MaxNodes(sources=[buffer("stimulus")]), attend_to=[BattleConcept.AVAILABLE_MOVES.value]))
+            cl.Construct(name=cl.chunks("opponent_type_in"), process=AttentionFilter(base=cl.MaxNodes(sources=[buffer("stimulus")]), attend_to=[BattleConcept.ACTIVE_OPPONENT_TYPE]))
+            cl.Construct(name=cl.chunks("available_moves_in"), process=AttentionFilter(base=cl.MaxNodes(sources=[buffer("stimulus")]), attend_to=[BattleConcept.AVAILABLE_MOVES]))
+            cl.Construct(name=cl.chunks("available_switches_in"), process=AttentionFilter(base=cl.MaxNodes(sources=[buffer("stimulus")]), attend_to=[BattleConcept.AVAILABLE_SWITCHES]))
             cl.Construct(name=cl.flow_tt("effective_available_moves"),
                          process=ReasoningPath(
                              base=EffectiveMoves(type_source=cl.chunks("opponent_type_in"), move_source=cl.chunks("available_moves_in"), move_chunks=nacs.assets.move_chunks),
+                             controller=cl.buffer("mcs_effort_gate"),
+                             interface=EFFORT_INTERFACE,
+                             pidx=Effort.AUTOPILOT.index))
+            cl.Construct(name=cl.flow_tt("effective_available_switches"),
+                         process=ReasoningPath(
+                             base=EffectiveSwitches(type_source=cl.chunks("opponent_type_in"), switch_source=cl.chunks("available_switches_in"), pokemon_chunks=nacs.assets.pokemon_chunks),
                              controller=cl.buffer("mcs_effort_gate"),
                              interface=EFFORT_INTERFACE,
                              pidx=Effort.AUTOPILOT.index))
@@ -177,7 +183,7 @@ def create_agent() -> Tuple[cl.Structure, cl.Construct]:
                              pidx=Effort.TRY_HARD.index
                          ))
 
-            cl.Construct(name=cl.chunks("out"), process=cl.MaxNodes(sources=[cl.flow_tt("effective_available_moves"), cl.chunks("generate_and_test")]))
+            cl.Construct(name=cl.chunks("out"), process=cl.MaxNodes(sources=[cl.flow_tt("effective_available_moves"), cl.flow_tt("effective_available_switches"), cl.chunks("generate_and_test")]))
             cl.Construct(name=cl.terminus("main"), process=cl.ThresholdSelector(source=chunks("out"), threshold=0.001))
             cl.Construct(name=cl.terminus('wm_write'), process=cl.Constants(cl.nd.NumDict({feature(('wm', ('w', 0)), WmSource.CANDIDATE_MOVES.value): 1.0, feature(("wm", ("r", 0)), "read"): 1.0}, default=0.0)))
 

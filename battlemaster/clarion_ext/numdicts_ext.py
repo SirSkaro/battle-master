@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 
 import pyClarion as cl
 from pyClarion import nd
@@ -22,8 +22,13 @@ def get_feature_value_by_name(feature_name: str, chunk: cl.chunk, chunk_db: cl.C
     try:
         features = chunk_db[chunk].features
         return [feature for feature in features if feature.tag == feature_name][0].val
-    except:
+    except IndexError:
         raise ValueError(f'chunk {chunk} does not have a feature with the name "{feature_name}"')
+
+
+def get_features_by_name(feature_name: str, chunk: cl.chunk, chunk_db: cl.Chunks) -> List[cl.feature]:
+    features = chunk_db[chunk].features
+    return [feature for feature in features if feature.tag == feature_name]
 
 
 def get_chunk_from_numdict(chunk_name: str, d: nd.NumDict) -> Optional[cl.chunk]:

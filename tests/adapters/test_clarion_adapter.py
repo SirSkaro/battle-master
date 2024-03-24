@@ -77,7 +77,7 @@ class TestPerceptionFactory:
         self._given_players(battle)
 
         battle.active_pokemon = self._given_active_pokemon()
-        battle.team = self._given_team(battle.active_pokemon)
+        self._given_team(battle, battle.active_pokemon)
         battle.available_moves = [self._given_move('thunderbolt'), self._given_move('icebeam')]
 
         battle.opponent_active_pokemon = self._given_opposing_pokemon()
@@ -129,6 +129,11 @@ class TestPerceptionFactory:
         assert 2 == len(perceived_moves)
         for move_name in ['thunderbolt', 'icebeam']:
             assert cl.chunk(move_name) in perceived_moves
+
+    def test_available_switches_in_perception(self, perception: GroupedStimulusInput):
+        perceived_moves = perception.to_stimulus()[BattleConcept.AVAILABLE_SWITCHES]
+        assert 1 == len(perceived_moves)
+        assert cl.chunk('charizard') in perceived_moves
 
     def test_active_pokemon_in_perception(self, active_pokemon_perception: GroupedChunkInstance):
         assert 'blastoise' == active_pokemon_perception.cid
@@ -352,7 +357,7 @@ class TestPerceptionFactory:
         return pokemon
 
     @classmethod
-    def _given_team(cls, active_pokemon: Pokemon) -> Dict[str, Pokemon]:
+    def _given_team(cls, battle, active_pokemon: Pokemon) -> Dict[str, Pokemon]:
         team = {active_pokemon.species: active_pokemon}
         benched_pokemon: Pokemon = Mock(spec=Pokemon)
         benched_pokemon.species = 'charizard'
@@ -372,6 +377,9 @@ class TestPerceptionFactory:
         benched_pokemon.terastallized = False
 
         team[benched_pokemon.species] = benched_pokemon
+
+        battle.team = team
+        battle.available_switches = [benched_pokemon]
 
         return team
 

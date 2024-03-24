@@ -13,6 +13,7 @@ from ..clarion_ext.attention import GroupedStimulusInput
 class BattleConcept(str, Enum):
     ACTIVE_OPPONENT_TYPE = 'active_opponent_type'
     AVAILABLE_MOVES = 'available_moves'
+    AVAILABLE_SWITCHES = 'available_switches'
     PLAYERS = 'players'
     ACTIVE_POKEMON = 'active_pokemon'
     TEAM = 'team'
@@ -58,6 +59,7 @@ class PerceptionFactory:
 
         self._add_player_active_pokemon(battle.active_pokemon, perception)
         self._add_available_moves(battle, perception)
+        self._add_available_switches(battle, perception)
         self._add_player_team(battle.team, perception)
         self._add_side_conditions(battle.side_conditions, BattleConcept.SIDE_CONDITIONS, perception)
 
@@ -108,6 +110,11 @@ class PerceptionFactory:
     def _add_available_moves(battle: Battle, perception: GroupedStimulusInput):
         move_chunks = [cl.chunk(move.id) for move in battle.available_moves]
         perception.add_chunks_to_group(move_chunks, BattleConcept.AVAILABLE_MOVES)
+
+    @staticmethod
+    def _add_available_switches(battle: Battle, perception: GroupedStimulusInput):
+        pokemon_chunks = [cl.chunk(pokemon.species) for pokemon in battle.available_switches]
+        perception.add_chunks_to_group(pokemon_chunks, BattleConcept.AVAILABLE_SWITCHES)
 
     @classmethod
     def _add_player_active_pokemon(cls, pokemon: Pokemon, perception: GroupedStimulusInput):
