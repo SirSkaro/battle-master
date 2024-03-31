@@ -17,51 +17,56 @@ from .adapters.poke_engine_adapter import Simulator
 pokemon_database = gen_data.GenData.from_gen(9)
 
 
-def _define_type_chunks() -> Tuple[cl.Chunks, cl.Rules]:
-    type_chunks = cl.Chunks()
-    rule_database = cl.Rules()
-    types = ['normal', 'fighting', 'flying', 'poison', 'ground', 'rock', 'bug', 'ghost', 'steel', 'fire', 'water',
-             'grass', 'electric', 'psychic', 'ice', 'dragon', 'dark', 'fairy']
+def _define_goals() -> Tuple[cl.Chunks, cl.Domain]:
+    goal_chunks = cl.Chunks()
+    drive_domain = cl.Domain(features=(
+        feature('keep_pokemon_alive'),
+        feature('have_more_pokemon_than_opponent'),
+        feature('ko_opponent'),
+        feature('do_damage'),
+        feature('keep_healthy'),
+        feature('buff_self'),
+        feature('debuff_opponent'),
+        feature('prevent_opponent_buff'),
+        feature('keep_type_advantage'),
+        feature('prevent_type_disadvantage'),
+        feature('have_super_effective_move_available'),
+        feature('reveal_hidden_information'),
+    ))
 
-    # attacking type (row) x defending type (column)
-    type_chart = [
-        #normal fighting    flying  poison  ground  rock    bug     ghost   steel   fire    water   grass   electric    psychic ice     dragon  dark    fairy
-        [1.0,   1.0,        1.0,    1.0,    1.0,    0.5,    1.0,    0.0,    0.5,    1.0,    1.0,    1.0,    1.0,        1.0,    1.0,    1.0,    1.0,    1.0],  # normal
-        [2.0,   1.0,        0.5,    0.5,    1.0,    2.0,    0.5,    0.0,    2.0,    1.0,    1.0,    1.0,    1.0,        0.5,    2.0,    1.0,    2.0,    0.5],  # fighting
-        [1.0,   2.0,        1.0,    1.0,    1.0,    0.5,    2.0,    1.0,    0.5,    1.0,    1.0,    1.0,    0.5,        1.0,    1.0,    1.0,    1.0,    1.0],  # flying
-        [1.0,   1.0,        1.0,    0.5,    0.5,    0.5,    1.0,    1.0,    0.0,    1.0,    1.0,    2.0,    0.5,        1.0,    1.0,    1.0,    1.0,    2.0],  # poison
-        [1.0,   1.0,        0.0,    2.0,    1.0,    2.0,    1.0,    1.0,    2.0,    2.0,    1.0,    0.5,    2.0,        1.0,    1.0,    1.0,    1.0,    1.0],  # ground
-        [1.0,   0.5,        2.0,    1.0,    0.5,    1.0,    2.0,    1.0,    0.5,    2.0,    1.0,    1.0,    1.0,        1.0,    2.0,    1.0,    1.0,    1.0],  # rock
-        [1.0,   0.5,        0.5,    0.5,    1.0,    1.0,    1.0,    0.5,    0.5,    0.5,    1.0,    2.0,    1.0,        2.0,    1.0,    1.0,    2.0,    0.5],  # bug
-        [0.0,   1.0,        1.0,    1.0,    1.0,    1.0,    1.0,    2.0,    1.0,    1.0,    1.0,    1.0,    1.0,        2.0,    1.0,    1.0,    0.5,    1.0],  # ghost
-        [1.0,   1.0,        1.0,    1.0,    1.0,    2.0,    1.0,    1.0,    0.5,    0.5,    0.5,    1.0,    0.5,        1.0,    2.0,    1.0,    1.0,    2.0],  # steel
-        [1.0,   1.0,        1.0,    1.0,    1.0,    0.5,    2.0,    1.0,    2.0,    0.5,    0.5,    2.0,    1.0,        1.0,    2.0,    0.5,    1.0,    1.0],  # fire
-        [1.0,   1.0,        1.0,    1.0,    2.0,    2.0,    1.0,    1.0,    1.0,    2.0,    0.5,    0.5,    1.0,        1.0,    1.0,    0.5,    1.0,    1.0],  # water
-        [1.0,   1.0,        0.5,    1.0,    2.0,    2.0,    0.5,    1.0,    0.5,    0.5,    2.0,    0.5,    1.0,        1.0,    1.0,    0.5,    1.0,    1.0],  # grass
-        [1.0,   1.0,        2.0,    1.0,    0.0,    1.0,    1.0,    1.0,    1.0,    1.0,    2.0,    0.5,    0.5,        1.0,    1.0,    0.5,    1.0,    1.0],  # electric
-        [1.0,   2.0,        1.0,    2.0,    0.0,    1.0,    1.0,    1.0,    0.5,    1.0,    1.0,    1.0,    1.0,        0.5,    1.0,    1.0,    0.0,    1.0],  # psychic
-        [1.0,   1.0,        2.0,    1.0,    2.0,    1.0,    1.0,    1.0,    0.5,    0.5,    0.5,    2.0,    1.0,        1.0,    0.5,    2.0,    1.0,    1.0],  # ice
-        [1.0,   1.0,        1.0,    1.0,    1.0,    1.0,    1.0,    1.0,    0.5,    1.0,    1.0,    1.0,    1.0,        1.0,    1.0,    2.0,    1.0,    0.0],  # dragon
-        [1.0,   0.5,        1.0,    1.0,    1.0,    1.0,    1.0,    2.0,    1.0,    1.0,    1.0,    1.0,    1.0,        2.0,    1.0,    2.0,    0.5,    0.5],  # dark
-        [1.0,   2.0,        1.0,    0.5,    1.0,    1.0,    1.0,    1.0,    0.5,    0.5,    1.0,    1.0,    1.0,        2.0,    1.0,    2.0,    2.0,    1.0],  # fairy
-    ]
+    goal_chunks.define(
+        chunk('preserve'),
+        feature('keep_pokemon_alive'),
+        feature('keep_type_advantage'),
+        feature('keep_healthy'),
+        feature('have_more_pokemon_than_opponent'),
+        feature('have_super_effective_move_available'),
+    )
+    goal_chunks.define(
+        chunk('sacrifice'),
+        feature('keep_type_advantage'),
+        feature('prevent_opponent_buff'),
+        feature('prevent_type_disadvantage'),
+    )
+    goal_chunks.define(
+        chunk('deal_damage'),
+        feature('ko_opponent'),
+        feature('do_damage'),
+        feature('prevent_opponent_buff'),
+        feature('keep_pokemon_alive'),
+        feature('reveal_hidden_information'),
+    )
+    goal_chunks.define(
+        chunk('switch'),
+        feature('keep_pokemon_alive'),
+        feature('keep_healthy'),
+        feature('prevent_opponent_buff'),
+        feature('prevent_type_disadvantage'),
+        feature('have_super_effective_move_available'),
+        feature('reveal_hidden_information'),
+    )
 
-    for type in types:
-        type_chunks.define(chunk(type), feature('type', type))
-
-    for attacker_index, attacker_type in enumerate(types):
-        attack_conclusion = chunk(attacker_type)
-        attack_rule = rule(f'{attacker_type}-super-effective-against')
-        attack_conditions = []
-        efficacies = type_chart[attacker_index]
-        for efficacy_index, efficacy in enumerate(efficacies):
-            if efficacy == 2.0:
-                weak_type = types[efficacy_index]
-                attack_conditions.append(chunk(weak_type))
-
-        rule_database.define(attack_rule, attack_conclusion, *attack_conditions)
-
-    return type_chunks, rule_database
+    return goal_chunks, drive_domain
 
 
 _camel_case_pattern = re.compile(r'(?<!^)(?=[A-Z])')
@@ -109,7 +114,7 @@ def _define_pokemon_chunks() -> cl.Chunks:
 
 
 def create_agent() -> Tuple[cl.Structure, cl.Construct]:
-    type_chunks, rule_database = _define_type_chunks()
+    goal_chunks, drive_domain = _define_goals()
     move_chunks = _define_move_chunks()
     pokemon_chunks = _define_pokemon_chunks()
 
@@ -133,10 +138,8 @@ def create_agent() -> Tuple[cl.Structure, cl.Construct]:
         nacs = cl.Structure(
             name=subsystem("nacs"),
             assets=cl.Assets(
-                type_chunks=type_chunks,
                 move_chunks=move_chunks,
                 pokemon_chunks=pokemon_chunks,
-                rdb=rule_database,
                 mental_simulator=Simulator())
         )
 

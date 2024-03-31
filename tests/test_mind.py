@@ -13,11 +13,6 @@ from battlemaster.clarion_ext.positioning import Effort
 
 
 @pytest.fixture
-def type_chunks(nacs: cl.Structure) -> cl.Chunks:
-    return nacs.assets.type_chunks
-
-
-@pytest.fixture
 def move_chunks(nacs: cl.Structure) -> cl.Chunks:
     return nacs.assets.move_chunks
 
@@ -25,16 +20,6 @@ def move_chunks(nacs: cl.Structure) -> cl.Chunks:
 @pytest.fixture
 def pokemon_chunks(nacs: cl.Structure) -> cl.Chunks:
     return nacs.assets.pokemon_chunks
-
-
-def test_type_chunks_populated(type_chunks: cl.Chunks):
-    types = ['normal', 'fighting', 'flying', 'poison', 'ground', 'rock', 'bug', 'ghost', 'steel', 'fire', 'water',
-             'grass', 'electric', 'psychic', 'ice', 'dragon', 'dark', 'fairy']
-    assert len(type_chunks) == len(types)
-    for type in types:
-        type_chunk = cl.chunk(type)
-        assert type_chunk in type_chunks
-        assert cl.feature('type', type) in type_chunks[type_chunk].features
 
 
 def test_move_chunks_populated(move_chunks: cl.Chunks, pokemon_database: GenData):
