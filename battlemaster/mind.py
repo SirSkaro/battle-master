@@ -2,7 +2,7 @@ from typing import Tuple
 import re
 
 import pyClarion as cl
-from pyClarion import chunk, rule, feature, buffer, subsystem, chunks
+from pyClarion import chunk, feature, buffer, subsystem, chunks
 from poke_env import gen_data
 
 from .clarion_ext.attention import NamedStimuli, AttentionFilter
@@ -11,28 +11,15 @@ from .clarion_ext.positioning import DecideEffort, Effort, EFFORT_INTERFACE
 from .clarion_ext.working_memory import WM_INTERFACE, WmSource
 from .clarion_ext.simulation import MentalSimulation
 from .clarion_ext.filters import ReasoningPath
+from .clarion_ext.motivation import drive
 from .adapters.clarion_adapter import BattleConcept
 from .adapters.poke_engine_adapter import Simulator
 
 pokemon_database = gen_data.GenData.from_gen(9)
 
 
-def _define_goals() -> Tuple[cl.Chunks, cl.Domain]:
+def _define_goals() -> cl.Chunks:
     goal_chunks = cl.Chunks()
-    drive_domain = cl.Domain(features=(
-        feature('keep_pokemon_alive'),
-        feature('have_more_pokemon_than_opponent'),
-        feature('ko_opponent'),
-        feature('do_damage'),
-        feature('keep_healthy'),
-        feature('buff_self'),
-        feature('debuff_opponent'),
-        feature('prevent_opponent_buff'),
-        feature('keep_type_advantage'),
-        feature('prevent_type_disadvantage'),
-        feature('have_super_effective_move_available'),
-        feature('reveal_hidden_information'),
-    ))
 
     goal_chunks.define(
         chunk('preserve'),
@@ -66,7 +53,7 @@ def _define_goals() -> Tuple[cl.Chunks, cl.Domain]:
         feature('reveal_hidden_information'),
     )
 
-    return goal_chunks, drive_domain
+    return goal_chunks
 
 
 _camel_case_pattern = re.compile(r'(?<!^)(?=[A-Z])')
@@ -114,7 +101,7 @@ def _define_pokemon_chunks() -> cl.Chunks:
 
 
 def create_agent() -> Tuple[cl.Structure, cl.Construct]:
-    goal_chunks, drive_domain = _define_goals()
+    goal_chunks = _define_goals()
     move_chunks = _define_move_chunks()
     pokemon_chunks = _define_pokemon_chunks()
 
@@ -126,6 +113,7 @@ def create_agent() -> Tuple[cl.Structure, cl.Construct]:
             process=NamedStimuli()
         )
 
+        ms = cl.Structure(name=subsystem('ms'))
         mcs = cl.Structure(name=subsystem('mcs'))
 
         cl.Construct(
