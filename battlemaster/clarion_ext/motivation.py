@@ -1,7 +1,15 @@
+from abc import abstractmethod
 from enum import Enum
+import typing
+from typing import Mapping, Any, Dict, Callable
 
 import pyClarion as cl
+from pyClarion import nd
 from pyClarion import feature
+
+from ..adapters.clarion_adapter import BattleConcept
+from ..clarion_ext.attention import GroupedChunkInstance
+from .numdicts_ext import filter_chunks_by_group, get_chunk_from_numdict, get_only_value_from_numdict
 
 
 class drive(feature, Enum):
@@ -30,4 +38,58 @@ class goal(cl.chunk):
 
 
 DRIVE_DOMAIN = cl.Domain(features=tuple([d for d in drive]))
+GroupedStimulus = Mapping[BattleConcept, nd.NumDict]
+
+
+class DriveStrength(cl.Process):
+    _serves = cl.ConstructType.features
+
+    def __init__(self, stimulus_source: cl.Symbol, drive_evaluations: Dict[drive, Callable[[GroupedStimulus], float]]):
+        super().__init__(expected=[stimulus_source])
+        self._stimulus_source = stimulus_source
+        self._drive_evaluations = drive_evaluations
+
+    def call(self, inputs: Mapping[Any, nd.NumDict]) -> nd.NumDict:
+        result = nd.MutableNumDict(default=0.)
+        stimulus = inputs[cl.expand_address(self.client, self._stimulus_source)]
+        grouped_stimulus = self._group_stimulus(stimulus)
+        for drive in DRIVE_DOMAIN.features:
+            if drive in self._drive_evaluations:
+                result[drive] = self._drive_evaluations[drive](grouped_stimulus)
+
+        return result
+
+    @staticmethod
+    def _group_stimulus(stimulus: nd.NumDict) -> GroupedStimulus:
+        return {concept: filter_chunks_by_group(concept, stimulus) for concept in BattleConcept}
+
+
+class DriveEvaluator:
+    _supports: drive = None
+
+    @abstractmethod
+    def evaluate(self, stimulus: GroupedStimulus) -> float:
+        pass
+
+
+class DoDamageDriveEvaluator(DriveEvaluator):
+    _supports = drive.DO_DAMAGE
+
+    def evaluate(self, stimulus: GroupedStimulus) -> float:
+        battle_metadata = typing.cast(GroupedChunkInstance, get_chunk_from_numdict('metadata', stimulus[BattleConcept.BATTLE]))
+        is_force_switch_turn = battle_metadata.get_feature_value('force_switch')
+        return 0.5 if is_force_switch_turn else 5.
+
+
+class KoOpponentDriveEvaluator(DriveEvaluator):
+    _supports = drive.KO_OPPONENT
+
+    def evaluate(self, stimulus: GroupedStimulus) -> float:
+        opponent_active_pokemon_perception = stimulus[BattleConcept.OPPONENT_ACTIVE_POKEMON]
+        if len(opponent_active_pokemon_perception) == 0:
+            return 0.
+
+        opponent_active_pokemon = typing.cast(GroupedChunkInstance, get_only_value_from_numdict(opponent_active_pokemon_perception))
+        hp_percentage = opponent_active_pokemon.get_feature_value('hp_percentage')
+        return (100 - hp_percentage) / 20
 
