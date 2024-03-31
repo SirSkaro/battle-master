@@ -25,5 +25,9 @@ class drive(feature, Enum):
             super(feature, self).__setattr__(key, value)
 
 
+class goal(cl.chunk):
+    pass
+
+
 DRIVE_DOMAIN = cl.Domain(features=tuple([d for d in drive]))
 

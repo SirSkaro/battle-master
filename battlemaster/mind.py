@@ -11,7 +11,7 @@ from .clarion_ext.positioning import DecideEffort, Effort, EFFORT_INTERFACE
 from .clarion_ext.working_memory import WM_INTERFACE, WmSource
 from .clarion_ext.simulation import MentalSimulation
 from .clarion_ext.filters import ReasoningPath
-from .clarion_ext.motivation import drive
+from .clarion_ext.motivation import drive, goal
 from .adapters.clarion_adapter import BattleConcept
 from .adapters.poke_engine_adapter import Simulator
 
@@ -22,35 +22,35 @@ def _define_goals() -> cl.Chunks:
     goal_chunks = cl.Chunks()
 
     goal_chunks.define(
-        chunk('preserve'),
-        feature('keep_pokemon_alive'),
-        feature('keep_type_advantage'),
-        feature('keep_healthy'),
-        feature('have_more_pokemon_than_opponent'),
-        feature('have_super_effective_move_available'),
+        goal('preserve'),
+        drive('keep_pokemon_alive'),
+        drive('keep_type_advantage'),
+        drive('keep_healthy'),
+        drive('have_more_pokemon_than_opponent'),
+        drive('have_super_effective_move_available'),
     )
     goal_chunks.define(
-        chunk('sacrifice'),
-        feature('keep_type_advantage'),
-        feature('prevent_opponent_buff'),
-        feature('prevent_type_disadvantage'),
+        goal('sacrifice'),
+        drive('keep_type_advantage'),
+        drive('prevent_opponent_buff'),
+        drive('prevent_type_disadvantage'),
     )
     goal_chunks.define(
-        chunk('deal_damage'),
-        feature('ko_opponent'),
-        feature('do_damage'),
-        feature('prevent_opponent_buff'),
-        feature('keep_pokemon_alive'),
-        feature('reveal_hidden_information'),
+        goal('deal_damage'),
+        drive('ko_opponent'),
+        drive('do_damage'),
+        drive('prevent_opponent_buff'),
+        drive('keep_pokemon_alive'),
+        drive('reveal_hidden_information'),
     )
     goal_chunks.define(
-        chunk('switch'),
-        feature('keep_pokemon_alive'),
-        feature('keep_healthy'),
-        feature('prevent_opponent_buff'),
-        feature('prevent_type_disadvantage'),
-        feature('have_super_effective_move_available'),
-        feature('reveal_hidden_information'),
+        goal('switch'),
+        drive('keep_pokemon_alive'),
+        drive('keep_healthy'),
+        drive('prevent_opponent_buff'),
+        drive('prevent_type_disadvantage'),
+        drive('have_super_effective_move_available'),
+        drive('reveal_hidden_information'),
     )
 
     return goal_chunks
