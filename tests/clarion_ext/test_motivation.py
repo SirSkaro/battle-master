@@ -78,4 +78,35 @@ class TestDoDamageDriveEvaluator:
         strength = evaluator.evaluate(stimulus)
         assert strength == 5.0
 
-# TODO test KoOpponentDriveEvaluator
+
+class TestKoOpponentDriveEvaluator:
+    @pytest.fixture
+    def stimulus(self, request) -> GroupedStimulus:
+        hp_percentage = request.param
+        return {
+            BattleConcept.OPPONENT_ACTIVE_POKEMON: nd.NumDict({
+                GroupedChunkInstance('metadata', BattleConcept.OPPONENT_ACTIVE_POKEMON, [cl.feature('hp_percentage', hp_percentage)]): 1.
+            })
+        }
+
+    @pytest.fixture
+    def evaluator(self):
+        return KoOpponentDriveEvaluator()
+
+    @pytest.mark.parametrize('stimulus', [100], indirect=True)
+    def test_evaluate_full_health(self, evaluator: DoDamageDriveEvaluator, stimulus):
+        strength = evaluator.evaluate(stimulus)
+        assert strength == 0.05
+
+    @pytest.mark.parametrize('stimulus', [1], indirect=True)
+    def test_evaluate_almost_no_health(self, evaluator: DoDamageDriveEvaluator, stimulus):
+        strength = evaluator.evaluate(stimulus)
+        assert strength == 5.0
+
+    def test_no_active_pokemon(self, evaluator: DoDamageDriveEvaluator):
+        stimulus = {
+            BattleConcept.OPPONENT_ACTIVE_POKEMON: nd.NumDict({})
+        }
+
+        strength = evaluator.evaluate(stimulus)
+        assert strength == 0.

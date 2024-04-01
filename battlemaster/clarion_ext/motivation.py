@@ -91,5 +91,5 @@ class KoOpponentDriveEvaluator(DriveEvaluator):
 
         opponent_active_pokemon = typing.cast(GroupedChunkInstance, get_only_value_from_numdict(opponent_active_pokemon_perception))
         hp_percentage = opponent_active_pokemon.get_feature_value('hp_percentage')
-        return (100 - hp_percentage) / 20
+        return ((100 - hp_percentage) / 20) + 0.05
 
