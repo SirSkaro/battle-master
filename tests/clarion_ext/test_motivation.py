@@ -110,3 +110,5 @@ class TestKoOpponentDriveEvaluator:
 
         strength = evaluator.evaluate(stimulus)
         assert strength == 0.
+
+# TODO write test for KeepPokemonAliveEvaluator

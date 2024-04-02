@@ -93,3 +93,17 @@ class KoOpponentDriveEvaluator(DriveEvaluator):
         hp_percentage = opponent_active_pokemon.get_feature_value('hp_percentage')
         return ((100 - hp_percentage) / 20) + 0.05
 
+
+class KeepPokemonAliveEvaluator(DriveEvaluator):
+    _supports = drive.KEEP_POKEMON_ALIVE
+
+    def evaluate(self, stimulus: GroupedStimulus) -> float:
+        active_pokemon_perception = stimulus[BattleConcept.ACTIVE_POKEMON]
+        if len(active_pokemon_perception) == 0:
+            return 0.
+
+        active_pokemon = typing.cast(GroupedChunkInstance, get_only_value_from_numdict(active_pokemon_perception))
+        hp = active_pokemon.get_feature_value('hp')
+        max_hp = active_pokemon.get_feature_value('max_hp')
+        hp_percentage = hp / max_hp
+        return 5. if hp == 1 else (1.0 - hp_percentage) * 5
