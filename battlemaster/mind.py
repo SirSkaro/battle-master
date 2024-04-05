@@ -11,7 +11,10 @@ from .clarion_ext.positioning import DecideEffort, Effort, EFFORT_INTERFACE
 from .clarion_ext.working_memory import WM_INTERFACE, WmSource
 from .clarion_ext.simulation import MentalSimulation
 from .clarion_ext.filters import ReasoningPath
-from .clarion_ext.motivation import drive, goal
+from .clarion_ext.motivation import (
+    drive, goal, DriveStrength, DoDamageDriveEvaluator, KoOpponentDriveEvaluator, KeepPokemonAliveEvaluator,
+    KeepHealthyEvaluator, ConstantDriveEvaluator
+)
 from .adapters.clarion_adapter import BattleConcept
 from .adapters.poke_engine_adapter import Simulator
 
@@ -113,7 +116,27 @@ def create_agent() -> Tuple[cl.Structure, cl.Construct]:
             process=NamedStimuli()
         )
 
-        ms = cl.Structure(name=subsystem('ms'))
+        ms = cl.Structure(
+            name=subsystem('ms'),
+            assets=cl.Assets(
+                goal_chunks=goal_chunks,
+                personality={
+                    drive('keep_pokemon_alive'): KeepPokemonAliveEvaluator().evaluate,
+                    drive('have_more_pokemon_than_opponent'): ConstantDriveEvaluator(4.0).evaluate,
+                    drive('ko_opponent'): KoOpponentDriveEvaluator().evaluate,
+                    drive('do_damage'): DoDamageDriveEvaluator().evaluate,
+                    drive('keep_healthy'): KeepHealthyEvaluator().evaluate,
+                    drive('buff_self'): ConstantDriveEvaluator(1.0).evaluate,
+                    drive('debuff_opponent'): ConstantDriveEvaluator(1.0).evaluate,
+                    drive('prevent_opponent_buff'): ConstantDriveEvaluator(3.0).evaluate,
+                    drive('keep_type_advantage'): ConstantDriveEvaluator(4.0).evaluate,
+                    drive('prevent_type_disadvantage'): ConstantDriveEvaluator(4.0).evaluate,
+                    drive('have_super_effective_move_available'): ConstantDriveEvaluator(4.0).evaluate,
+                    drive('reveal_hidden_information'): ConstantDriveEvaluator(4.0).evaluate
+                }
+            )
+        )
+
         mcs = cl.Structure(name=subsystem('mcs'))
 
         cl.Construct(
@@ -140,6 +163,9 @@ def create_agent() -> Tuple[cl.Structure, cl.Construct]:
         )
 
         acs = cl.Structure(name=subsystem("acs"))
+
+        with ms:
+            pass
 
         with mcs:
             cl.Construct(name=cl.chunks("self_team_in"), process=AttentionFilter(base=cl.MaxNodes(sources=[buffer("stimulus")]), attend_to=[BattleConcept.TEAM, BattleConcept.ACTIVE_POKEMON]))
