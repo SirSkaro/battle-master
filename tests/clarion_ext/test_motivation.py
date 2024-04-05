@@ -7,7 +7,8 @@ import pytest
 from battlemaster.adapters.clarion_adapter import BattleConcept
 from battlemaster.clarion_ext.attention import GroupedChunk, GroupedChunkInstance
 from battlemaster.clarion_ext.motivation import (
-    drive, DoDamageDriveEvaluator, KoOpponentDriveEvaluator, DriveStrength, GroupedStimulus
+    drive, DoDamageDriveEvaluator, KoOpponentDriveEvaluator, DriveStrength, GroupedStimulus,
+    KeepPokemonAliveEvaluator, KeepHealthyEvaluator, ConstantDriveEvaluator
 )
 
 
@@ -85,7 +86,7 @@ class TestKoOpponentDriveEvaluator:
         hp_percentage = request.param
         return {
             BattleConcept.OPPONENT_ACTIVE_POKEMON: nd.NumDict({
-                GroupedChunkInstance('metadata', BattleConcept.OPPONENT_ACTIVE_POKEMON, [cl.feature('hp_percentage', hp_percentage)]): 1.
+                GroupedChunkInstance('snivy', BattleConcept.OPPONENT_ACTIVE_POKEMON, [cl.feature('hp_percentage', hp_percentage)]): 1.
             })
         }
 
@@ -94,16 +95,16 @@ class TestKoOpponentDriveEvaluator:
         return KoOpponentDriveEvaluator()
 
     @pytest.mark.parametrize('stimulus', [100], indirect=True)
-    def test_evaluate_full_health(self, evaluator: DoDamageDriveEvaluator, stimulus):
+    def test_evaluate_full_health(self, evaluator: KoOpponentDriveEvaluator, stimulus):
         strength = evaluator.evaluate(stimulus)
         assert strength == 0.05
 
     @pytest.mark.parametrize('stimulus', [1], indirect=True)
-    def test_evaluate_almost_no_health(self, evaluator: DoDamageDriveEvaluator, stimulus):
+    def test_evaluate_almost_no_health(self, evaluator: KoOpponentDriveEvaluator, stimulus):
         strength = evaluator.evaluate(stimulus)
         assert strength == 5.0
 
-    def test_no_active_pokemon(self, evaluator: DoDamageDriveEvaluator):
+    def test_no_active_pokemon(self, evaluator: KoOpponentDriveEvaluator):
         stimulus = {
             BattleConcept.OPPONENT_ACTIVE_POKEMON: nd.NumDict({})
         }
@@ -111,4 +112,76 @@ class TestKoOpponentDriveEvaluator:
         strength = evaluator.evaluate(stimulus)
         assert strength == 0.
 
-# TODO write test for KeepPokemonAliveEvaluator
+
+class TestKeepPokemonAliveEvaluator:
+    @pytest.fixture
+    def stimulus(self, request) -> GroupedStimulus:
+        hp = request.param[0]
+        max_hp = request.param[1]
+        return {
+            BattleConcept.ACTIVE_POKEMON: nd.NumDict({
+                GroupedChunkInstance('blissey', BattleConcept.ACTIVE_POKEMON,
+                                     [cl.feature('hp', hp), cl.feature('max_hp', max_hp)]): 1.,
+            })
+        }
+
+    @pytest.fixture
+    def evaluator(self):
+        return KeepPokemonAliveEvaluator()
+
+    @pytest.mark.parametrize('stimulus', [(714, 714)], indirect=True)
+    def test_evaluate_full_health(self, evaluator: KeepPokemonAliveEvaluator, stimulus):
+        strength = evaluator.evaluate(stimulus)
+        assert strength == 0.05
+
+    @pytest.mark.parametrize('stimulus', [(1, 714)], indirect=True)
+    def test_evaluate_one_hp(self, evaluator: KeepPokemonAliveEvaluator, stimulus):
+        strength = evaluator.evaluate(stimulus)
+        assert strength == 5
+
+    @pytest.mark.parametrize('stimulus', [(357, 714)], indirect=True)
+    def test_evaluate_half_hp(self, evaluator: KeepPokemonAliveEvaluator, stimulus):
+        strength = evaluator.evaluate(stimulus)
+        assert strength == 2.5
+
+
+class TestKeepHealthyEvaluator:
+    @pytest.fixture
+    def stimulus(self, request) -> GroupedStimulus:
+        hp = request.param[0]
+        max_hp = request.param[1]
+        return {
+            BattleConcept.ACTIVE_POKEMON: nd.NumDict({
+                GroupedChunkInstance('blissey', BattleConcept.ACTIVE_POKEMON,
+                                     [cl.feature('hp', hp), cl.feature('max_hp', max_hp)]): 1.,
+            })
+        }
+
+    @pytest.fixture
+    def evaluator(self):
+        return KeepHealthyEvaluator()
+
+    @pytest.mark.parametrize('stimulus', [(714, 714)], indirect=True)
+    def test_evaluate_full_health(self, evaluator: KeepHealthyEvaluator, stimulus):
+        strength = evaluator.evaluate(stimulus)
+        assert strength == 5.0
+
+    @pytest.mark.parametrize('stimulus', [(1, 714)], indirect=True)
+    def test_evaluate_one_hp(self, evaluator: KeepHealthyEvaluator, stimulus):
+        strength = evaluator.evaluate(stimulus)
+        assert strength == 0.05
+
+    @pytest.mark.parametrize('stimulus', [(357, 714)], indirect=True)
+    def test_evaluate_half_hp(self, evaluator: KeepHealthyEvaluator, stimulus):
+        strength = evaluator.evaluate(stimulus)
+        assert strength == 2.5
+
+
+class TestConstantDriveEvaluator:
+    def test_evaluate(self):
+        constant_strength = 3.2
+        evaluator = ConstantDriveEvaluator(constant_strength)
+        strength = evaluator.evaluate({})
+
+        assert strength == constant_strength
+

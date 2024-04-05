@@ -65,16 +65,15 @@ class DriveStrength(cl.Process):
 
 
 class DriveEvaluator:
-    _supports: drive = None
-
+    '''
+    A method to evaluate a drive strength. A value between [0,5].
+    '''
     @abstractmethod
     def evaluate(self, stimulus: GroupedStimulus) -> float:
         pass
 
 
 class DoDamageDriveEvaluator(DriveEvaluator):
-    _supports = drive.DO_DAMAGE
-
     def evaluate(self, stimulus: GroupedStimulus) -> float:
         battle_metadata = typing.cast(GroupedChunkInstance, get_chunk_from_numdict('metadata', stimulus[BattleConcept.BATTLE]))
         is_force_switch_turn = battle_metadata.get_feature_value('force_switch')
@@ -82,8 +81,6 @@ class DoDamageDriveEvaluator(DriveEvaluator):
 
 
 class KoOpponentDriveEvaluator(DriveEvaluator):
-    _supports = drive.KO_OPPONENT
-
     def evaluate(self, stimulus: GroupedStimulus) -> float:
         opponent_active_pokemon_perception = stimulus[BattleConcept.OPPONENT_ACTIVE_POKEMON]
         if len(opponent_active_pokemon_perception) == 0:
@@ -95,8 +92,6 @@ class KoOpponentDriveEvaluator(DriveEvaluator):
 
 
 class KeepPokemonAliveEvaluator(DriveEvaluator):
-    _supports = drive.KEEP_POKEMON_ALIVE
-
     def evaluate(self, stimulus: GroupedStimulus) -> float:
         active_pokemon_perception = stimulus[BattleConcept.ACTIVE_POKEMON]
         if len(active_pokemon_perception) == 0:
@@ -106,4 +101,36 @@ class KeepPokemonAliveEvaluator(DriveEvaluator):
         hp = active_pokemon.get_feature_value('hp')
         max_hp = active_pokemon.get_feature_value('max_hp')
         hp_percentage = hp / max_hp
-        return 5. if hp == 1 else (1.0 - hp_percentage) * 5
+        drive_multiplier = 1.0 - hp_percentage
+
+        if hp == 1:
+            return 5.
+        elif drive_multiplier <= 0.01:
+            return 0.05
+        else:
+            return drive_multiplier * 5
+
+
+class KeepHealthyEvaluator(DriveEvaluator):
+    def evaluate(self, stimulus: GroupedStimulus) -> float:
+        active_pokemon_perception = stimulus[BattleConcept.ACTIVE_POKEMON]
+        if len(active_pokemon_perception) == 0:
+            return 0.
+
+        active_pokemon = typing.cast(GroupedChunkInstance, get_only_value_from_numdict(active_pokemon_perception))
+        hp = active_pokemon.get_feature_value('hp')
+        max_hp = active_pokemon.get_feature_value('max_hp')
+        hp_percentage = hp / max_hp
+
+        if hp_percentage <= 0.05:
+            return 0.05
+        return hp_percentage * 5
+
+
+class ConstantDriveEvaluator(DriveEvaluator):
+    def __init__(self, strength: float):
+        super().__init__()
+        self._strength = strength
+
+    def evaluate(self, stimulus: GroupedStimulus) -> float:
+        return self._strength
