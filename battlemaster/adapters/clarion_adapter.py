@@ -1,3 +1,4 @@
+import logging
 from typing import Mapping, Optional, Dict
 from enum import Enum
 
@@ -30,17 +31,20 @@ class BattleConcept(str, Enum):
 
 
 class MindAdapter:
-
     def __init__(self, mind: cl.Structure, stimulus: cl.Construct, factory: 'PerceptionFactory'):
         self._mind = mind
         self._stimulus = stimulus
         self._factory = factory
+        self._logger = logging.getLogger(f"{__name__}")
 
     def perceive(self, battle: Battle) -> Mapping[str, nd.NumDict]:
         perception = self._factory.map(battle)
 
         self._stimulus.process.input(perception)
         self._mind.step()
+
+        if self._logger.isEnabledFor(logging.DEBUG):
+            self._logger.debug(cl.pprint(self._mind.output))
 
         return perception.to_stimulus()
 

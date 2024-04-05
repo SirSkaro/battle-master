@@ -122,17 +122,17 @@ def create_agent() -> Tuple[cl.Structure, cl.Construct]:
                 goal_chunks=goal_chunks,
                 personality={
                     drive('keep_pokemon_alive'): KeepPokemonAliveEvaluator().evaluate,
-                    drive('have_more_pokemon_than_opponent'): ConstantDriveEvaluator(4.0).evaluate,
+                    drive('have_more_pokemon_than_opponent'): ConstantDriveEvaluator(2.5).evaluate,
                     drive('ko_opponent'): KoOpponentDriveEvaluator().evaluate,
                     drive('do_damage'): DoDamageDriveEvaluator().evaluate,
                     drive('keep_healthy'): KeepHealthyEvaluator().evaluate,
                     drive('buff_self'): ConstantDriveEvaluator(1.0).evaluate,
                     drive('debuff_opponent'): ConstantDriveEvaluator(1.0).evaluate,
-                    drive('prevent_opponent_buff'): ConstantDriveEvaluator(3.0).evaluate,
-                    drive('keep_type_advantage'): ConstantDriveEvaluator(4.0).evaluate,
-                    drive('prevent_type_disadvantage'): ConstantDriveEvaluator(4.0).evaluate,
-                    drive('have_super_effective_move_available'): ConstantDriveEvaluator(4.0).evaluate,
-                    drive('reveal_hidden_information'): ConstantDriveEvaluator(4.0).evaluate
+                    drive('prevent_opponent_buff'): ConstantDriveEvaluator(1.0).evaluate,
+                    drive('keep_type_advantage'): ConstantDriveEvaluator(2.5).evaluate,
+                    drive('prevent_type_disadvantage'): ConstantDriveEvaluator(2.5).evaluate,
+                    drive('have_super_effective_move_available'): ConstantDriveEvaluator(2.5).evaluate,
+                    drive('reveal_hidden_information'): ConstantDriveEvaluator(2.5).evaluate
                 }
             )
         )
@@ -166,6 +166,8 @@ def create_agent() -> Tuple[cl.Structure, cl.Construct]:
 
         with ms:
             cl.Construct(name=cl.features('drive_strengths'), process=DriveStrength(stimulus_source=buffer("stimulus"), personality_map=ms.assets.personality))
+            cl.Construct(name=cl.flow_bt('goal_activations'), process=cl.BottomUp(source=cl.features('drive_strengths'), chunks=ms.assets.goal_chunks))
+            cl.Construct(name=cl.chunks('goals'), process=cl.MaxNodes(sources=[cl.flow_bt('goal_activations')]))
 
         with mcs:
             cl.Construct(name=cl.chunks("self_team_in"), process=AttentionFilter(base=cl.MaxNodes(sources=[buffer("stimulus")]), attend_to=[BattleConcept.TEAM, BattleConcept.ACTIVE_POKEMON]))
