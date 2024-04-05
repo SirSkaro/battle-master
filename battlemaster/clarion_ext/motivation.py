@@ -44,10 +44,10 @@ GroupedStimulus = Mapping[BattleConcept, nd.NumDict]
 class DriveStrength(cl.Process):
     _serves = cl.ConstructType.features
 
-    def __init__(self, stimulus_source: cl.Symbol, drive_evaluations: Dict[drive, Callable[[GroupedStimulus], float]]):
+    def __init__(self, stimulus_source: cl.Symbol, personality_map: Dict[drive, Callable[[GroupedStimulus], float]]):
         super().__init__(expected=[stimulus_source])
         self._stimulus_source = stimulus_source
-        self._drive_evaluations = drive_evaluations
+        self._drive_evaluations = personality_map
 
     def call(self, inputs: Mapping[Any, nd.NumDict]) -> nd.NumDict:
         result = nd.MutableNumDict(default=0.)

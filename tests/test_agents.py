@@ -1,11 +1,12 @@
 from unittest.mock import Mock, MagicMock
 from typing import Optional, List
 
-import pytest
-from battlemaster.agents import BattleMasterPlayer
 from poke_env.environment import Battle, Move, Pokemon, PokemonType
+import pytest
 import pyClarion as cl
+from pyClarion import nd
 
+from battlemaster.agents import BattleMasterPlayer
 from battlemaster.adapters.clarion_adapter import MindAdapter, PerceptionFactory, BattleConcept
 from battlemaster.clarion_ext.attention import GroupedStimulusInput
 from battlemaster.clarion_ext.positioning import Effort
@@ -76,7 +77,8 @@ class TestBattleMasterPlayerComponentTests:
         return BattleMasterPlayer(mind_adapter, start_listening=False)
 
     @pytest.mark.parametrize('given_effort', [Effort.AUTOPILOT], indirect=True)
-    def test_chooses_super_effective_move(self, player: BattleMasterPlayer, battle, perception_factory, given_effort):
+    @pytest.mark.parametrize('given_drives', [nd.NumDict(default=0.)], indirect=True)
+    def test_chooses_super_effective_move(self, player: BattleMasterPlayer, battle, perception_factory, given_effort, given_drives):
         battle.available_moves = [_given_move('darkpulse'), _given_move('bodyslam')]
         battle.opponent_active_pokemon = self._given_opposing_pokemon('ghost')
         self._given_perception(perception_factory, battle.available_moves, battle.opponent_active_pokemon)

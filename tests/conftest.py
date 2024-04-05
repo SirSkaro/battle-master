@@ -8,6 +8,7 @@ from poke_env.data import GenData
 
 from battlemaster import mind
 from battlemaster.clarion_ext.positioning import DecideEffort, EFFORT_INTERFACE
+from battlemaster.clarion_ext.motivation import DriveStrength
 
 
 @pytest.fixture
@@ -50,6 +51,12 @@ def given_effort(request, monkeypatch: MonkeyPatch):
     effort = request.param.value
     effort_feature = cl.feature((EFFORT_INTERFACE.name, effort))
     monkeypatch.setattr(DecideEffort, 'call', lambda _self, inputs: nd.NumDict({effort_feature: 1.}, default=0.))
+
+
+@pytest.fixture
+def given_drives(request, monkeypatch: MonkeyPatch):
+    drives: nd.NumDict = request.param
+    monkeypatch.setattr(DriveStrength, 'call', lambda _self, inputs: drives)
 
 
 @pytest.fixture

@@ -165,7 +165,7 @@ def create_agent() -> Tuple[cl.Structure, cl.Construct]:
         acs = cl.Structure(name=subsystem("acs"))
 
         with ms:
-            pass
+            cl.Construct(name=cl.features('drive_strengths'), process=DriveStrength(stimulus_source=buffer("stimulus"), personality_map=ms.assets.personality))
 
         with mcs:
             cl.Construct(name=cl.chunks("self_team_in"), process=AttentionFilter(base=cl.MaxNodes(sources=[buffer("stimulus")]), attend_to=[BattleConcept.TEAM, BattleConcept.ACTIVE_POKEMON]))

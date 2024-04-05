@@ -10,6 +10,7 @@ from battlemaster.clarion_ext.attention import GroupedStimulusInput
 from battlemaster.clarion_ext.simulation import MentalSimulation
 from battlemaster.adapters.clarion_adapter import BattleConcept
 from battlemaster.clarion_ext.positioning import Effort
+from battlemaster.clarion_ext.motivation import DriveStrength
 
 
 @pytest.fixture
@@ -68,7 +69,10 @@ def test_pokemon_chunks_have_expected_features(expected_chunks: Tuple[str, List[
     (["steel", "flying"], ["thunder", "stoneedge", "sludge", "gigadrain"], ["thunder", "stoneedge"])
 ])
 @pytest.mark.parametrize('given_effort', [Effort.AUTOPILOT], indirect=True)
-def test_writes_effective_moves_to_working_memory(active_opponent_type: List[str], available_moves: List[str], acceptable_moves: List[str], agent: cl.Structure, stimulus: cl.Construct, working_memory: cl.Construct, given_effort):
+@pytest.mark.parametrize('given_drives', [nd.NumDict(default=0.)], indirect=True)
+def test_writes_effective_moves_to_working_memory(active_opponent_type: List[str], available_moves: List[str],
+                                                  acceptable_moves: List[str], agent: cl.Structure, stimulus: cl.Construct,
+                                                  working_memory: cl.Construct, given_effort, given_drives):
     perception = GroupedStimulusInput(['active_opponent_type', 'available_moves'])
     for defending_type in active_opponent_type:
         perception.add_chunk_to_group(cl.chunk(defending_type), 'active_opponent_type')
@@ -89,7 +93,10 @@ def test_writes_effective_moves_to_working_memory(active_opponent_type: List[str
     (["steel", "flying"], ["thunder", "stoneedge", "sludge", "gigadrain"], ["thunder", "stoneedge"])
 ])
 @pytest.mark.parametrize('given_effort', [Effort.AUTOPILOT], indirect=True)
-def test_acs_chooses_effective_move_from_available_moves(active_opponent_type: List[str], available_moves: List[str], acceptable_moves: List[str], agent: cl.Structure, stimulus: cl.Construct, acs_terminus: cl.Construct, given_effort):
+@pytest.mark.parametrize('given_drives', [nd.NumDict(default=0.)], indirect=True)
+def test_acs_chooses_effective_move_from_available_moves(active_opponent_type: List[str], available_moves: List[str],
+                                                         acceptable_moves: List[str], agent: cl.Structure, stimulus: cl.Construct,
+                                                         acs_terminus: cl.Construct, given_effort, given_drives):
     perception = GroupedStimulusInput(['active_opponent_type', 'available_moves'])
     for defending_type in active_opponent_type:
         perception.add_chunk_to_group(cl.chunk(defending_type), 'active_opponent_type')
@@ -109,8 +116,9 @@ def test_acs_chooses_effective_move_from_available_moves(active_opponent_type: L
     ([("psyduck", False), ("pidgey", False), ("pidov", False), ("staravia", False)], [("caterpie", True), ("kakuna", True), ("beedrill", True)], "autopilot"),
     ([("pikachu", False)], [("raichu", False), ("rhydon", False)], "try_hard"),
 ])
+@pytest.mark.parametrize('given_drives', [nd.NumDict(default=0.)], indirect=True)
 def test_mcs_outputs_effort(team: List[str], opponent_team: List[Tuple[str, bool]], expected_effort: str, agent: cl.Structure,
-                            stimulus: cl.Construct, mcs_effort_gate: cl.Construct, monkeypatch: MonkeyPatch):
+                            stimulus: cl.Construct, mcs_effort_gate: cl.Construct, monkeypatch: MonkeyPatch, given_drives):
     monkeypatch.setattr(MentalSimulation, 'call', lambda _self, inputs: nd.NumDict(default=0.))
 
     perception = GroupedStimulusInput([BattleConcept.TEAM, BattleConcept.OPPONENT_TEAM])
