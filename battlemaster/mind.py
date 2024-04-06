@@ -8,7 +8,7 @@ from poke_env import gen_data
 from .clarion_ext.attention import NamedStimuli, AttentionFilter
 from .clarion_ext.pokemon_efficacy import EffectiveMoves, EffectiveSwitches
 from .clarion_ext.positioning import DecideEffort, Effort, EFFORT_INTERFACE
-from .clarion_ext.working_memory import WM_INTERFACE, WmSource
+from .clarion_ext.working_memory import NACS_OUT_WM_INTERFACE, NacsWmSource, MS_OUT_WM_INTERFACE, MsWmSource
 from .clarion_ext.simulation import MentalSimulation
 from .clarion_ext.filters import ReasoningPath
 from .clarion_ext.motivation import (
@@ -33,24 +33,24 @@ def _define_goals() -> cl.Chunks:
         drive('have_super_effective_move_available'),
     )
     goal_chunks.define(
-        goal('sacrifice'),
-        drive('keep_type_advantage'),
-        drive('prevent_opponent_buff'),
-        drive('prevent_type_disadvantage'),
-    )
-    goal_chunks.define(
         goal('deal_damage'),
         drive('ko_opponent'),
         drive('do_damage'),
-        drive('prevent_opponent_buff'),
+        #drive('prevent_opponent_buff'),
         drive('keep_pokemon_alive'),
+        drive('reveal_hidden_information'),
+    )
+    goal_chunks.define(
+        goal('advance_game'),
+        drive('ko_opponent'),
+        drive('do_damage'),
         drive('reveal_hidden_information'),
     )
     goal_chunks.define(
         goal('switch'),
         drive('keep_pokemon_alive'),
         drive('keep_healthy'),
-        drive('prevent_opponent_buff'),
+        #drive('prevent_opponent_buff'),
         drive('prevent_type_disadvantage'),
         drive('have_super_effective_move_available'),
         drive('reveal_hidden_information'),
@@ -122,19 +122,27 @@ def create_agent() -> Tuple[cl.Structure, cl.Construct]:
                 goal_chunks=goal_chunks,
                 personality={
                     drive('keep_pokemon_alive'): KeepPokemonAliveEvaluator().evaluate,
-                    drive('have_more_pokemon_than_opponent'): ConstantDriveEvaluator(2.5).evaluate,
+                    #drive('have_more_pokemon_than_opponent'): ConstantDriveEvaluator(2.5).evaluate,
                     drive('ko_opponent'): KoOpponentDriveEvaluator().evaluate,
                     drive('do_damage'): DoDamageDriveEvaluator().evaluate,
                     drive('keep_healthy'): KeepHealthyEvaluator().evaluate,
-                    drive('buff_self'): ConstantDriveEvaluator(1.0).evaluate,
-                    drive('debuff_opponent'): ConstantDriveEvaluator(1.0).evaluate,
-                    drive('prevent_opponent_buff'): ConstantDriveEvaluator(1.0).evaluate,
+                    #drive('buff_self'): ConstantDriveEvaluator(1.0).evaluate,
+                    #drive('debuff_opponent'): ConstantDriveEvaluator(1.0).evaluate,
+                    #drive('prevent_opponent_buff'): ConstantDriveEvaluator(2.0).evaluate,
                     drive('keep_type_advantage'): ConstantDriveEvaluator(2.5).evaluate,
                     drive('prevent_type_disadvantage'): ConstantDriveEvaluator(2.5).evaluate,
                     drive('have_super_effective_move_available'): ConstantDriveEvaluator(2.5).evaluate,
                     drive('reveal_hidden_information'): ConstantDriveEvaluator(2.5).evaluate
                 }
             )
+        )
+
+        cl.Construct(
+            name=buffer('wm_ms_out'),
+            process=cl.RegisterArray(
+                controller=(subsystem("ms"), cl.terminus("wm_write")),
+                sources=((subsystem("ms"), cl.terminus("drives_out")), (subsystem("ms"), cl.terminus("goals_out"))),
+                interface=MS_OUT_WM_INTERFACE)
         )
 
         mcs = cl.Structure(name=subsystem('mcs'))
@@ -155,11 +163,11 @@ def create_agent() -> Tuple[cl.Structure, cl.Construct]:
         )
 
         cl.Construct(
-            name=buffer("wm"),
+            name=buffer("wm_nacs_out"),
             process=cl.RegisterArray(
                 controller=(subsystem("nacs"), cl.terminus("wm_write")),
                 sources=((subsystem("nacs"), cl.terminus("main")),),
-                interface=WM_INTERFACE)
+                interface=NACS_OUT_WM_INTERFACE)
         )
 
         acs = cl.Structure(name=subsystem("acs"))
@@ -168,8 +176,19 @@ def create_agent() -> Tuple[cl.Structure, cl.Construct]:
             cl.Construct(name=cl.features('drive_strengths'), process=DriveStrength(stimulus_source=buffer("stimulus"), personality_map=ms.assets.personality))
             cl.Construct(name=cl.flow_bt('goal_activations'), process=cl.BottomUp(source=cl.features('drive_strengths'), chunks=ms.assets.goal_chunks))
             cl.Construct(name=cl.chunks('goals'), process=cl.MaxNodes(sources=[cl.flow_bt('goal_activations')]))
+            cl.Construct(name=cl.terminus('drives_out'), process=cl.ThresholdSelector(source=cl.features("drive_strengths"), threshold=0.001))
+            cl.Construct(name=cl.terminus('goals_out'), process=cl.ThresholdSelector(source=chunks("goals"), threshold=0.001))
+            cl.Construct(name=cl.terminus('wm_write'), process=cl.Constants(cl.nd.NumDict({
+                feature(('wm', ('w', 0)), MsWmSource.GOAL_ACTIVATIONS.value): 1.0,
+                feature(("wm", ("r", 0)), "read"): 1.0,
+                feature(('wm', ('w', 1)), MsWmSource.DRIVE_ACTIVATIONS.value): 1.0,
+                feature(("wm", ("r", 1)), "read"): 1.0,
+            }, default=0.0)))
 
         with mcs:
+            cl.Construct(name=cl.features('drives_in'), process=cl.MaxNodes(sources=[buffer("wm_ms_out")]))
+            cl.Construct(name=cl.chunks('goals_in'), process=cl.MaxNodes(sources=[buffer("wm_ms_out")]))
+
             cl.Construct(name=cl.chunks("self_team_in"), process=AttentionFilter(base=cl.MaxNodes(sources=[buffer("stimulus")]), attend_to=[BattleConcept.TEAM, BattleConcept.ACTIVE_POKEMON]))
             cl.Construct(name=cl.chunks("opponent_team_in"), process=AttentionFilter(base=cl.MaxNodes(sources=[buffer("stimulus")]), attend_to=[BattleConcept.OPPONENT_TEAM, BattleConcept.OPPONENT_ACTIVE_POKEMON]))
             cl.Construct(name=cl.features('effort'), process=DecideEffort(team_source=cl.chunks('self_team_in'), opponent_team_source=cl.chunks('opponent_team_in')))
@@ -204,11 +223,11 @@ def create_agent() -> Tuple[cl.Structure, cl.Construct]:
 
             cl.Construct(name=cl.chunks("out"), process=cl.MaxNodes(sources=[cl.flow_tt("effective_available_moves"), cl.flow_tt("effective_available_switches"), cl.chunks("generate_and_test")]))
             cl.Construct(name=cl.terminus("main"), process=cl.ThresholdSelector(source=chunks("out"), threshold=0.001))
-            cl.Construct(name=cl.terminus('wm_write'), process=cl.Constants(cl.nd.NumDict({feature(('wm', ('w', 0)), WmSource.CANDIDATE_MOVES.value): 1.0, feature(("wm", ("r", 0)), "read"): 1.0}, default=0.0)))
+            cl.Construct(name=cl.terminus('wm_write'), process=cl.Constants(cl.nd.NumDict({feature(('wm', ('w', 0)), NacsWmSource.CANDIDATE_ACTIONS.value): 1.0, feature(("wm", ("r", 0)), "read"): 1.0}, default=0.0)))
 
         with acs:
-            cl.Construct(name=cl.chunks('wm'), process=cl.MaxNodes(sources=[buffer("wm")]))
-            cl.Construct(name=cl.chunks("out"), process=cl.MaxNodes(sources=[cl.chunks("wm")]))
+            cl.Construct(name=cl.chunks('wm_in'), process=cl.MaxNodes(sources=[buffer("wm_nacs_out")]))
+            cl.Construct(name=cl.chunks("out"), process=cl.MaxNodes(sources=[cl.chunks("wm_in")]))
             cl.Construct(name=cl.terminus("choose_move"), process=cl.BoltzmannSelector(source=cl.chunks("out"), temperature=0.2, threshold=0.))
 
     return agent, stimulus

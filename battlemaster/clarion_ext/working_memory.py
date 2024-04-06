@@ -3,17 +3,32 @@ from enum import Enum
 import pyClarion as cl
 
 
-class WmSource(str, Enum):
-    CANDIDATE_MOVES = 'candidate_moves'
+class NacsWmSource(str, Enum):
+    CANDIDATE_ACTIONS = 'candidate_actions'
 
     def __str__(self) -> str:
         return self.value
 
 
-WM_INTERFACE = cl.RegisterArray.Interface(
+NACS_OUT_WM_INTERFACE = cl.RegisterArray.Interface(
     name="wm",
     slots=1,
-    vops=tuple(source.value for source in WmSource)
+    vops=tuple(source.value for source in NacsWmSource)
+)
+
+
+class MsWmSource(str, Enum):
+    DRIVE_ACTIVATIONS = 'drive_activations'
+    GOAL_ACTIVATIONS = 'goal_activations'
+
+    def __str__(self) -> str:
+        return self.value
+
+
+MS_OUT_WM_INTERFACE = cl.RegisterArray.Interface(
+    name="wm",
+    slots=2,
+    vops=tuple(source.value for source in MsWmSource)
 )
 
 

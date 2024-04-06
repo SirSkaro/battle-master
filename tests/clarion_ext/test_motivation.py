@@ -72,7 +72,7 @@ class TestDoDamageDriveEvaluator:
     @pytest.mark.parametrize('stimulus', [True], indirect=True)
     def test_evaluate_force_switch(self, evaluator: DoDamageDriveEvaluator, stimulus):
         strength = evaluator.evaluate(stimulus)
-        assert strength == 0.5
+        assert strength == 0.0
 
     @pytest.mark.parametrize('stimulus', [False], indirect=True)
     def test_evaluate_not_force_switch(self, evaluator: DoDamageDriveEvaluator, stimulus):

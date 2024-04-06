@@ -77,7 +77,7 @@ class DoDamageDriveEvaluator(DriveEvaluator):
     def evaluate(self, stimulus: GroupedStimulus) -> float:
         battle_metadata = typing.cast(GroupedChunkInstance, get_chunk_from_numdict('metadata', stimulus[BattleConcept.BATTLE]))
         is_force_switch_turn = battle_metadata.get_feature_value('force_switch')
-        return 0.5 if is_force_switch_turn else 5.
+        return 0.0 if is_force_switch_turn else 5.
 
 
 class KoOpponentDriveEvaluator(DriveEvaluator):
