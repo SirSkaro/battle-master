@@ -70,9 +70,9 @@ def test_pokemon_chunks_have_expected_features(expected_chunks: Tuple[str, List[
 ])
 @pytest.mark.parametrize('given_effort', [Effort.AUTOPILOT], indirect=True)
 @pytest.mark.parametrize('given_drives', [nd.NumDict(default=0.)], indirect=True)
-def test_writes_effective_moves_to_working_memory(active_opponent_type: List[str], available_moves: List[str],
+def test_nacs_writes_effective_moves_to_working_memory(active_opponent_type: List[str], available_moves: List[str],
                                                   acceptable_moves: List[str], agent: cl.Structure, stimulus: cl.Construct,
-                                                  working_memory: cl.Construct, given_effort, given_drives):
+                                                  nacs_working_memory: cl.Construct, given_effort, given_drives):
     perception = GroupedStimulusInput(['active_opponent_type', 'available_moves'])
     for defending_type in active_opponent_type:
         perception.add_chunk_to_group(cl.chunk(defending_type), 'active_opponent_type')
@@ -81,7 +81,7 @@ def test_writes_effective_moves_to_working_memory(active_opponent_type: List[str
 
     stimulus.process.input(perception)
     agent.step()
-    working_memory_contents = working_memory.output
+    working_memory_contents = nacs_working_memory.output
 
     super_effective_moves = [type_chunk.cid for type_chunk, weight in iter(working_memory_contents.items())]
     assert sorted(acceptable_moves) == sorted(super_effective_moves)
@@ -132,3 +132,5 @@ def test_mcs_outputs_effort(team: List[str], opponent_team: List[Tuple[str, bool
     effort = next(iter(mcs_effort_gate.output))
 
     assert expected_effort == effort.tag[1]
+
+

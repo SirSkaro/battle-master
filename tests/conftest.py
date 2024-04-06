@@ -32,7 +32,7 @@ def nacs(agent: cl.Structure) -> cl.Structure:
 
 
 @pytest.fixture
-def working_memory(agent: cl.Structure) -> cl.Construct:
+def nacs_working_memory(agent: cl.Structure) -> cl.Construct:
     return agent[cl.buffer("wm_nacs_out")]
 
 

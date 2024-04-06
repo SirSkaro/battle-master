@@ -42,7 +42,7 @@ class MindAdapter:
 
         self._stimulus.process.input(perception)
         self._mind.step()
-        self._logger.info(cl.pprint(self._mind.output))
+        #self._logger.info(cl.pprint(self._mind.output))
 
         return perception.to_stimulus()
 
