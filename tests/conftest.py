@@ -27,6 +27,11 @@ def stimulus(agent_stimulus: Tuple[cl.Structure, cl.Construct]) -> cl.Construct:
 
 
 @pytest.fixture
+def ms_working_memory(agent: cl.Structure) -> cl.Construct:
+    return agent[cl.buffer("wm_ms_out")]
+
+
+@pytest.fixture
 def nacs(agent: cl.Structure) -> cl.Structure:
     return agent[cl.subsystem('nacs')]
 
@@ -57,6 +62,7 @@ def given_effort(request, monkeypatch: MonkeyPatch):
 def given_drives(request, monkeypatch: MonkeyPatch):
     drives: nd.NumDict = request.param
     monkeypatch.setattr(DriveStrength, 'call', lambda _self, inputs: drives)
+    yield drives
 
 
 @pytest.fixture

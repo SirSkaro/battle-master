@@ -10,7 +10,7 @@ from battlemaster.clarion_ext.attention import GroupedStimulusInput
 from battlemaster.clarion_ext.simulation import MentalSimulation
 from battlemaster.adapters.clarion_adapter import BattleConcept
 from battlemaster.clarion_ext.positioning import Effort
-from battlemaster.clarion_ext.motivation import DriveStrength
+from battlemaster.clarion_ext.motivation import drive, goal
 
 
 @pytest.fixture
@@ -73,11 +73,11 @@ def test_pokemon_chunks_have_expected_features(expected_chunks: Tuple[str, List[
 def test_nacs_writes_effective_moves_to_working_memory(active_opponent_type: List[str], available_moves: List[str],
                                                   acceptable_moves: List[str], agent: cl.Structure, stimulus: cl.Construct,
                                                   nacs_working_memory: cl.Construct, given_effort, given_drives):
-    perception = GroupedStimulusInput(['active_opponent_type', 'available_moves'])
+    perception = GroupedStimulusInput([BattleConcept.ACTIVE_OPPONENT_TYPE, BattleConcept.AVAILABLE_MOVES])
     for defending_type in active_opponent_type:
-        perception.add_chunk_to_group(cl.chunk(defending_type), 'active_opponent_type')
+        perception.add_chunk_to_group(cl.chunk(defending_type), BattleConcept.ACTIVE_OPPONENT_TYPE)
     for name in available_moves:
-        perception.add_chunk_to_group(cl.chunk(name), 'available_moves')
+        perception.add_chunk_to_group(cl.chunk(name), BattleConcept.AVAILABLE_MOVES)
 
     stimulus.process.input(perception)
     agent.step()
@@ -97,11 +97,11 @@ def test_nacs_writes_effective_moves_to_working_memory(active_opponent_type: Lis
 def test_acs_chooses_effective_move_from_available_moves(active_opponent_type: List[str], available_moves: List[str],
                                                          acceptable_moves: List[str], agent: cl.Structure, stimulus: cl.Construct,
                                                          acs_terminus: cl.Construct, given_effort, given_drives):
-    perception = GroupedStimulusInput(['active_opponent_type', 'available_moves'])
+    perception = GroupedStimulusInput([BattleConcept.ACTIVE_OPPONENT_TYPE, BattleConcept.AVAILABLE_MOVES])
     for defending_type in active_opponent_type:
-        perception.add_chunk_to_group(cl.chunk(defending_type), 'active_opponent_type')
+        perception.add_chunk_to_group(cl.chunk(defending_type), BattleConcept.ACTIVE_OPPONENT_TYPE)
     for name in available_moves:
-        perception.add_chunk_to_group(cl.chunk(name), 'available_moves')
+        perception.add_chunk_to_group(cl.chunk(name), BattleConcept.AVAILABLE_MOVES)
 
     stimulus.process.input(perception)
     agent.step()
@@ -134,3 +134,27 @@ def test_mcs_outputs_effort(team: List[str], opponent_team: List[Tuple[str, bool
     assert expected_effort == effort.tag[1]
 
 
+@pytest.mark.parametrize('given_effort', [Effort.AUTOPILOT], indirect=True)
+@pytest.mark.parametrize('given_drives', [nd.NumDict({drive.DO_DAMAGE: 5.}, default=0.)], indirect=True)
+def test_ns_writes_drives_to_working_memory(agent: cl.Structure, stimulus: cl.Construct, ms_working_memory: cl.Construct, given_effort, given_drives):
+    perception = GroupedStimulusInput([])
+    stimulus.process.input(perception)
+    agent.step()
+
+    working_memory_contents = ms_working_memory.output
+
+    assert drive.DO_DAMAGE in working_memory_contents
+    assert working_memory_contents[drive.DO_DAMAGE] == 5.
+
+
+@pytest.mark.parametrize('given_effort', [Effort.AUTOPILOT], indirect=True)
+@pytest.mark.parametrize('given_drives', [nd.NumDict({drive.DO_DAMAGE: 5.}, default=0.)], indirect=True)
+def test_ns_writes_activated_goals_to_working_memory(agent: cl.Structure, stimulus: cl.Construct, ms_working_memory: cl.Construct, given_effort, given_drives):
+    perception = GroupedStimulusInput([])
+    stimulus.process.input(perception)
+    agent.step()
+
+    working_memory_contents = ms_working_memory.output
+
+    assert goal('deal_damage') in working_memory_contents
+    assert goal('advance_game') in working_memory_contents
