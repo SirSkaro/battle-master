@@ -31,6 +31,18 @@ MS_OUT_WM_INTERFACE = cl.RegisterArray.Interface(
     vops=tuple(source.value for source in MsWmSource)
 )
 
+class McsWmSource(str, Enum):
+    GOAL = 'goal'
+
+    def __str__(self) -> str:
+        return self.value
+
+
+MCS_OUT_WM_INTERFACE = cl.RegisterArray.Interface(
+    name="wm",
+    slots=1,
+    vops=tuple(source.value for source in McsWmSource)
+)
 
 def format_contents(wm: cl.Construct) -> str:
     return ' | '.join([str(cell.store) for cell in wm.process.cells])

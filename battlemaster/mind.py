@@ -8,7 +8,11 @@ from poke_env import gen_data
 from .clarion_ext.attention import NamedStimuli, AttentionFilter
 from .clarion_ext.pokemon_efficacy import EffectiveMoves, EffectiveSwitches
 from .clarion_ext.positioning import DecideEffort, Effort, EFFORT_INTERFACE
-from .clarion_ext.working_memory import NACS_OUT_WM_INTERFACE, NacsWmSource, MS_OUT_WM_INTERFACE, MsWmSource
+from .clarion_ext.working_memory import (
+    NACS_OUT_WM_INTERFACE, NacsWmSource,
+    MS_OUT_WM_INTERFACE, MsWmSource,
+    MCS_OUT_WM_INTERFACE, McsWmSource
+)
 from .clarion_ext.simulation import MentalSimulation
 from .clarion_ext.filters import ReasoningPath
 from .clarion_ext.motivation import (
@@ -154,6 +158,14 @@ def create_agent() -> Tuple[cl.Structure, cl.Construct]:
                 interface=EFFORT_INTERFACE)
         )
 
+        cl.Construct(
+            name=buffer('wm_mcs_out'),
+            process=cl.RegisterArray(
+                controller=(subsystem("mcs"), cl.terminus("wm_write")),
+                sources=((subsystem("mcs"), cl.terminus("goal_out")),),
+                interface=MCS_OUT_WM_INTERFACE)
+        )
+
         nacs = cl.Structure(
             name=subsystem("nacs"),
             assets=cl.Assets(
@@ -188,6 +200,8 @@ def create_agent() -> Tuple[cl.Structure, cl.Construct]:
         with mcs:
             cl.Construct(name=cl.features('drives_in'), process=cl.MaxNodes(sources=[buffer("wm_ms_out")]))
             cl.Construct(name=cl.chunks('goals_in'), process=cl.MaxNodes(sources=[buffer("wm_ms_out")]))
+            cl.Construct(name=cl.terminus('goal_out'), process=cl.BoltzmannSelector(source=cl.chunks('goals_in'), temperature=0.05, threshold=0.))
+            cl.Construct(name=cl.terminus('wm_write'), process=cl.Constants(cl.nd.NumDict({feature(('wm', ('w', 0)), McsWmSource.GOAL.value): 1.0, feature(("wm", ("r", 0)), "read"): 1.0}, default=0.0)))
 
             cl.Construct(name=cl.chunks("self_team_in"), process=AttentionFilter(base=cl.MaxNodes(sources=[buffer("stimulus")]), attend_to=[BattleConcept.TEAM, BattleConcept.ACTIVE_POKEMON]))
             cl.Construct(name=cl.chunks("opponent_team_in"), process=AttentionFilter(base=cl.MaxNodes(sources=[buffer("stimulus")]), attend_to=[BattleConcept.OPPONENT_TEAM, BattleConcept.OPPONENT_ACTIVE_POKEMON]))

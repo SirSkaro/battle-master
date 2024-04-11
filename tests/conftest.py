@@ -52,6 +52,11 @@ def mcs_effort_gate(agent: cl.Structure) -> cl.Construct:
 
 
 @pytest.fixture
+def mcs_working_memory(agent: cl.Structure) -> cl.Construct:
+    return agent[cl.buffer('wm_mcs_out')]
+
+
+@pytest.fixture
 def given_effort(request, monkeypatch: MonkeyPatch):
     effort = request.param.value
     effort_feature = cl.feature((EFFORT_INTERFACE.name, effort))
