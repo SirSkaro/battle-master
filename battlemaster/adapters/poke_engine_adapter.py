@@ -1,10 +1,12 @@
-from typing import Mapping, List
+from typing import Mapping, List, Callable
 from collections import defaultdict
+from enum import Enum
 
 from poke_env.environment import Battle, Pokemon, Effect, Field
 from poke_engine import Battle as Simulation, Battler, Pokemon as PokemonSimulation, constants, StateMutator
 from poke_engine.select_best_move import get_payoff_matrix, pick_safest
 from poke_engine.helpers import normalize_name
+from poke_engine.constants import SWITCH_STRING
 from pyClarion import nd
 
 from .clarion_adapter import BattleConcept
@@ -12,17 +14,23 @@ from ..clarion_ext.attention import GroupedChunkInstance
 from ..clarion_ext.numdicts_ext import get_chunk_from_numdict, get_only_value_from_numdict, is_empty
 
 
+class OptionFilter(Enum):
+    NO_FILTER = lambda option: True
+    MOVES = lambda option: not option.startswith(SWITCH_STRING)
+    SWITCHES = lambda option: option.startswith(SWITCH_STRING)
+
+
 class Simulator:
     def __init__(self):
         pass
 
-    def pick_safest_move(self, simulation: Simulation) -> str:
-        battles = simulation.prepare_battles(join_moves_together=True)
+    def pick_safest_move(self, simulation: Simulation, user_option_filter: OptionFilter = OptionFilter.NO_FILTER) -> str:
+        battles = simulation.prepare_battles(guess_mega_evo_opponent=False, join_moves_together=True)
         all_scores = dict()
-        for i, b in enumerate(battles):
-            state = b.create_state()
+        for i, battle in enumerate(battles):
+            state = battle.create_state()
             mutator = StateMutator(state)
-            user_options, opponent_options = b.get_all_options()
+            user_options, opponent_options = self._get_user_and_opponent_options(battle, user_option_filter)
             scores = get_payoff_matrix(mutator, user_options, opponent_options, prune=True)
 
             prefixed_scores = self._prefix_opponent_move(scores, str(i))
@@ -31,6 +39,13 @@ class Simulator:
         decision, payoff = pick_safest(all_scores, remove_guaranteed=True)
         choice = decision[0]
         return choice
+
+    @staticmethod
+    def _get_user_and_opponent_options(battle: Simulation, user_option_filter: OptionFilter):
+        user_options, opponent_options = battle.get_all_options()
+        user_options = [option for option in user_options if user_option_filter(option)]
+
+        return user_options, opponent_options
 
     @staticmethod
     def _prefix_opponent_move(score_lookup, prefix):

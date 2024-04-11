@@ -159,6 +159,7 @@ def test_ns_writes_activated_goals_to_working_memory(agent: cl.Structure, stimul
     assert goal('deal_damage') in working_memory_contents
     assert goal('advance_game') in working_memory_contents
 
+
 @pytest.mark.parametrize('given_effort', [Effort.AUTOPILOT], indirect=True)
 @pytest.mark.parametrize('given_drives', [nd.NumDict({drive.DO_DAMAGE: 5.}, default=0.)], indirect=True)
 def test_ns_writes_activated_goals_to_working_memory(agent: cl.Structure, stimulus: cl.Construct, mcs_working_memory: cl.Construct, given_effort, given_drives):
