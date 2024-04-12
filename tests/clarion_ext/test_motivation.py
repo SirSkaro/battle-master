@@ -8,7 +8,8 @@ from battlemaster.adapters.clarion_adapter import BattleConcept
 from battlemaster.clarion_ext.attention import GroupedChunk, GroupedChunkInstance
 from battlemaster.clarion_ext.motivation import (
     drive, DoDamageDriveEvaluator, KoOpponentDriveEvaluator, DriveStrength, GroupedStimulus,
-    KeepPokemonAliveEvaluator, KeepHealthyEvaluator, ConstantDriveEvaluator
+    KeepPokemonAliveEvaluator, KeepHealthyEvaluator, ConstantDriveEvaluator,
+    KeepTypeAdvantageDriveEvaluator
 )
 
 
@@ -175,6 +176,31 @@ class TestKeepHealthyEvaluator:
     def test_evaluate_half_hp(self, evaluator: KeepHealthyEvaluator, stimulus):
         strength = evaluator.evaluate(stimulus)
         assert strength == 2.5
+
+
+class TestKeepTypeAdvantageDriveEvaluator:
+    @pytest.fixture
+    def stimulus(self, request) -> GroupedStimulus:
+        is_force_switch = request.param
+        return {
+            BattleConcept.BATTLE: nd.NumDict({
+                GroupedChunkInstance('metadata', BattleConcept.BATTLE, [cl.feature('force_switch', is_force_switch)]): 1.
+            })
+        }
+
+    @pytest.fixture
+    def evaluator(self):
+        return KeepTypeAdvantageDriveEvaluator()
+
+    @pytest.mark.parametrize('stimulus', [True], indirect=True)
+    def test_evaluate_force_switch(self, evaluator: DoDamageDriveEvaluator, stimulus):
+        strength = evaluator.evaluate(stimulus)
+        assert strength == 5.0
+
+    @pytest.mark.parametrize('stimulus', [False], indirect=True)
+    def test_evaluate_not_force_switch(self, evaluator: DoDamageDriveEvaluator, stimulus):
+        strength = evaluator.evaluate(stimulus)
+        assert strength == 0.0
 
 
 class TestConstantDriveEvaluator:

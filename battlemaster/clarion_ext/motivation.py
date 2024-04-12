@@ -146,6 +146,13 @@ class KeepHealthyEvaluator(DriveEvaluator):
         return hp_percentage * 5
 
 
+class KeepTypeAdvantageDriveEvaluator(DriveEvaluator):
+    def evaluate(self, stimulus: GroupedStimulus) -> float:
+        battle_metadata = typing.cast(GroupedChunkInstance, get_chunk_from_numdict('metadata', stimulus[BattleConcept.BATTLE]))
+        is_force_switch_turn = battle_metadata.get_feature_value('force_switch')
+        return 5.0 if is_force_switch_turn else 0.
+
+
 class ConstantDriveEvaluator(DriveEvaluator):
     def __init__(self, strength: float):
         super().__init__()
@@ -154,4 +161,4 @@ class ConstantDriveEvaluator(DriveEvaluator):
     def evaluate(self, stimulus: GroupedStimulus) -> float:
         return self._strength
 
-# TODO class KeepTypeAdvantageDriveEvaluator(DriveEvaluator):
+

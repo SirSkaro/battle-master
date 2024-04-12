@@ -17,7 +17,8 @@ from .clarion_ext.simulation import MentalSimulation
 from .clarion_ext.filters import ReasoningPath
 from .clarion_ext.motivation import (
     drive, goal, GoalType, DriveStrength, DoDamageDriveEvaluator, KoOpponentDriveEvaluator,
-    KeepPokemonAliveEvaluator, KeepHealthyEvaluator, ConstantDriveEvaluator
+    KeepPokemonAliveEvaluator, KeepHealthyEvaluator, ConstantDriveEvaluator,
+    KeepTypeAdvantageDriveEvaluator
 )
 from .adapters.clarion_adapter import BattleConcept
 from .adapters.poke_engine_adapter import Simulator
@@ -77,12 +78,12 @@ def _define_move_chunks() -> cl.Chunks:
         if 'isZ' in move_data:
             continue
         move_chunks.define(chunk(name),
-                              feature('move', name),
-                              feature('accuracy', 100 if move_data['accuracy'] == True else move_data['accuracy']),
-                              feature('base_power', move_data['basePower']),
-                              feature('category', _to_snake_case(move_data['category'])),
-                              feature('priority', move_data['priority']),
-                              feature('type', _to_snake_case(move_data['type'])))
+                           feature('move', name),
+                           feature('accuracy', 100 if move_data['accuracy'] == True else move_data['accuracy']),
+                           feature('base_power', move_data['basePower']),
+                           feature('category', _to_snake_case(move_data['category'])),
+                           feature('priority', move_data['priority']),
+                           feature('type', _to_snake_case(move_data['type'])))
 
     return move_chunks
 
@@ -133,7 +134,7 @@ def create_agent() -> Tuple[cl.Structure, cl.Construct]:
                     #drive('buff_self'): ConstantDriveEvaluator(1.0).evaluate,
                     #drive('debuff_opponent'): ConstantDriveEvaluator(1.0).evaluate,
                     #drive('prevent_opponent_buff'): ConstantDriveEvaluator(2.0).evaluate,
-                    drive('keep_type_advantage'): ConstantDriveEvaluator(2.5).evaluate,
+                    drive('keep_type_advantage'): KeepTypeAdvantageDriveEvaluator().evaluate,
                     drive('prevent_type_disadvantage'): ConstantDriveEvaluator(2.5).evaluate,
                     drive('have_super_effective_move_available'): ConstantDriveEvaluator(2.5).evaluate,
                     drive('reveal_hidden_information'): ConstantDriveEvaluator(2.5).evaluate
