@@ -16,9 +16,9 @@ from .clarion_ext.working_memory import (
 from .clarion_ext.simulation import MentalSimulation
 from .clarion_ext.filters import ReasoningPath
 from .clarion_ext.motivation import (
-    drive, goal, GoalType, DriveStrength, DoDamageDriveEvaluator, KoOpponentDriveEvaluator,
-    KeepPokemonAliveEvaluator, KeepHealthyEvaluator, ConstantDriveEvaluator,
-    KeepTypeAdvantageDriveEvaluator
+    drive, goal, GoalType, DriveStrength, GoalGateAdapter, GOAL_GATE_INTERFACE,
+    DoDamageDriveEvaluator, KoOpponentDriveEvaluator, KeepPokemonAliveEvaluator, KeepHealthyEvaluator,
+    ConstantDriveEvaluator, KeepTypeAdvantageDriveEvaluator
 )
 from .adapters.clarion_adapter import BattleConcept
 from .adapters.poke_engine_adapter import Simulator
@@ -155,8 +155,15 @@ def create_agent() -> Tuple[cl.Structure, cl.Construct]:
         cl.Construct(
             name=cl.buffer("mcs_effort_gate"),
             process=cl.ParamSet(
-                controller=(cl.subsystem('mcs'), cl.terminus('effort')),
+                controller=(cl.subsystem('mcs'), cl.terminus('effort_gate_control')),
                 interface=EFFORT_INTERFACE)
+        )
+
+        cl.Construct(
+            name=cl.buffer("mcs_goal_gate"),
+            process=cl.ParamSet(
+                controller=(cl.subsystem('mcs'), cl.terminus('goal_gate_control')),
+                interface=GOAL_GATE_INTERFACE)
         )
 
         cl.Construct(
@@ -202,14 +209,20 @@ def create_agent() -> Tuple[cl.Structure, cl.Construct]:
             cl.Construct(name=cl.features('drives_in'), process=cl.MaxNodes(sources=[buffer("wm_ms_out")]))
             cl.Construct(name=cl.chunks('goals_in'), process=cl.MaxNodes(sources=[buffer("wm_ms_out")]))
             cl.Construct(name=cl.terminus('goal_out'), process=cl.BoltzmannSelector(source=cl.chunks('goals_in'), temperature=0.05, threshold=0.))
+
             cl.Construct(name=cl.terminus('wm_write'), process=cl.Constants(cl.nd.NumDict({feature(('wm', ('w', 0)), McsWmSource.GOAL.value): 1.0, feature(("wm", ("r", 0)), "read"): 1.0}, default=0.0)))
+
+            cl.Construct(name=cl.features('goal_gate_content'), process=GoalGateAdapter(goal_source=cl.terminus('goal_out')))
+            cl.Construct(name=cl.features('goal_gate_write'), process=cl.Constants(cl.nd.NumDict({cl.feature(('goal', 'w'), 'clrupd'): 1.0}, default=0.0)))
+            cl.Construct(name=cl.features('goal_gate_main'), process=cl.MaxNodes(sources=[cl.features('goal_gate_content'), cl.features('goal_gate_write')]))
+            cl.Construct(name=cl.terminus('goal_gate_control'), process=cl.ActionSelector(source=cl.features('goal_gate_main'), interface=GOAL_GATE_INTERFACE, temperature=0.01))
 
             cl.Construct(name=cl.chunks("self_team_in"), process=AttentionFilter(base=cl.MaxNodes(sources=[buffer("stimulus")]), attend_to=[BattleConcept.TEAM, BattleConcept.ACTIVE_POKEMON]))
             cl.Construct(name=cl.chunks("opponent_team_in"), process=AttentionFilter(base=cl.MaxNodes(sources=[buffer("stimulus")]), attend_to=[BattleConcept.OPPONENT_TEAM, BattleConcept.OPPONENT_ACTIVE_POKEMON]))
             cl.Construct(name=cl.features('effort'), process=DecideEffort(team_source=cl.chunks('self_team_in'), opponent_team_source=cl.chunks('opponent_team_in')))
             cl.Construct(name=cl.features('effort_gate_write'), process=cl.Constants(cl.nd.NumDict({cl.feature(('effort', 'w'), 'clrupd'): 1.0}, default=0.0)))
             cl.Construct(name=cl.features('effort_main'), process=cl.MaxNodes(sources=[cl.features('effort'), cl.features('effort_gate_write')]))
-            cl.Construct(name=cl.terminus('effort'), process=cl.ActionSelector(source=cl.features('effort_main'), interface=EFFORT_INTERFACE, temperature=0.01))
+            cl.Construct(name=cl.terminus('effort_gate_control'), process=cl.ActionSelector(source=cl.features('effort_main'), interface=EFFORT_INTERFACE, temperature=0.01))
 
         with nacs:
             cl.Construct(name=cl.chunks('goal_in'), process=cl.MaxNodes(sources=[buffer("wm_mcs_out")]))

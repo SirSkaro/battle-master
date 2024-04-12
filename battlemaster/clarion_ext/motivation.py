@@ -1,3 +1,4 @@
+import logging
 from abc import abstractmethod
 from enum import Enum
 import typing
@@ -44,16 +45,38 @@ class goal(cl.chunk):
 
     def __repr__(self):
         cls_name = type(self).__name__
-        return "{}({}|{})".format(cls_name, self.cid, self.type.value())
+        return "{}({}|{})".format(cls_name, self.cid, self.type.value)
 
     def __setattr__(self, key, value):
         object.__setattr__(self, key, value)
 
 
 GOAL_GATE_INTERFACE = cl.ParamSet.Interface(
-    name="gate",
-    pmkrs=("stimulus", "associations", "bottom-up")
+    name="goal",
+    pmkrs=tuple(type.value for type in GoalType)
 )
+
+
+class GoalGateAdapter(cl.Process):
+    '''
+    The gating API in pyClarion is very awkward. This process only exists to turn a goal chunk into a weird feature that
+    can control the goal gate.
+    '''
+    _serves = cl.ConstructType.features
+
+    def __init__(self, goal_source: cl.Symbol):
+        super().__init__(expected=[goal_source])
+        self._goal_source = goal_source
+
+    def call(self, inputs: Mapping[Any, nd.NumDict]) -> nd.NumDict:
+        goal_chunk: goal = get_only_value_from_numdict(inputs[cl.expand_address(self.client, self._goal_source)])
+        goal_feature = cl.feature((GOAL_GATE_INTERFACE.name, goal_chunk.type.value))
+        self._logger.debug(f"My goal is to {goal_feature}")
+        return nd.NumDict({goal_feature: 1.}, default=0.)
+
+    @property
+    def _logger(self):
+        return logging.getLogger(self.__class__.__name__)
 
 
 class drive(feature, Enum):

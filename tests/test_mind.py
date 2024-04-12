@@ -70,7 +70,7 @@ def test_pokemon_chunks_have_expected_features(expected_chunks: Tuple[str, List[
     (["steel", "flying"], ["thunder", "stoneedge", "sludge", "gigadrain"], ["thunder", "stoneedge"])
 ])
 @pytest.mark.parametrize('given_effort', [Effort.AUTOPILOT], indirect=True)
-@pytest.mark.parametrize('given_drives', [nd.NumDict(default=0.)], indirect=True)
+@pytest.mark.parametrize('given_drives', [nd.NumDict({drive.DO_DAMAGE: 5.}, default=0.)], indirect=True)
 def test_nacs_writes_effective_moves_to_working_memory(active_opponent_type: List[str], available_moves: List[str],
                                                   acceptable_moves: List[str], agent: cl.Structure, stimulus: cl.Construct,
                                                   nacs_working_memory: cl.Construct, given_effort, given_drives):
@@ -94,7 +94,7 @@ def test_nacs_writes_effective_moves_to_working_memory(active_opponent_type: Lis
     (["steel", "flying"], ["thunder", "stoneedge", "sludge", "gigadrain"], ["thunder", "stoneedge"])
 ])
 @pytest.mark.parametrize('given_effort', [Effort.AUTOPILOT], indirect=True)
-@pytest.mark.parametrize('given_drives', [nd.NumDict(default=0.)], indirect=True)
+@pytest.mark.parametrize('given_drives', [nd.NumDict({drive.DO_DAMAGE: 5.}, default=0.)], indirect=True)
 def test_acs_chooses_effective_move_from_available_moves(active_opponent_type: List[str], available_moves: List[str],
                                                          acceptable_moves: List[str], agent: cl.Structure, stimulus: cl.Construct,
                                                          acs_terminus: cl.Construct, given_effort, given_drives):
@@ -117,7 +117,7 @@ def test_acs_chooses_effective_move_from_available_moves(active_opponent_type: L
     ([("psyduck", False), ("pidgey", False), ("pidov", False), ("staravia", False)], [("caterpie", True), ("kakuna", True), ("beedrill", True)], "autopilot"),
     ([("pikachu", False)], [("raichu", False), ("rhydon", False)], "try_hard"),
 ])
-@pytest.mark.parametrize('given_drives', [nd.NumDict(default=0.)], indirect=True)
+@pytest.mark.parametrize('given_drives', [nd.NumDict({drive.DO_DAMAGE: 5.}, default=0.)], indirect=True)
 def test_mcs_outputs_effort(team: List[str], opponent_team: List[Tuple[str, bool]], expected_effort: str, agent: cl.Structure,
                             stimulus: cl.Construct, mcs_effort_gate: cl.Construct, monkeypatch: MonkeyPatch, given_drives):
     monkeypatch.setattr(MentalSimulation, 'call', lambda _self, inputs: nd.NumDict(default=0.))
@@ -174,3 +174,14 @@ def test_mcs_writes_selected_goal_to_working_memory(agent: cl.Structure, stimulu
     assert chosen_goal in [goal('deal_damage'), goal('advance_game')]
     assert chosen_goal.type == GoalType.MOVE
 
+
+@pytest.mark.parametrize('given_effort', [Effort.AUTOPILOT], indirect=True)
+@pytest.mark.parametrize('given_drives', [nd.NumDict({drive.KEEP_HEALTHY: 5.}, default=0.)], indirect=True)
+def test_mcs_writes_to_goal_gate(agent: cl.Structure, stimulus: cl.Construct, mcs_goal_gate: cl.Construct, given_effort, given_drives):
+    perception = GroupedStimulusInput([])
+    stimulus.process.input(perception)
+    agent.step()
+
+    goal_gate_contents = mcs_goal_gate.output
+    gating_feature = get_only_value_from_numdict(goal_gate_contents)
+    assert gating_feature.tag[1] == GoalType.SWITCH.value

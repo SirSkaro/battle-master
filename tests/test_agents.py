@@ -10,6 +10,7 @@ from battlemaster.agents import BattleMasterPlayer
 from battlemaster.adapters.clarion_adapter import MindAdapter, PerceptionFactory, BattleConcept
 from battlemaster.clarion_ext.attention import GroupedStimulusInput
 from battlemaster.clarion_ext.effort import Effort
+from battlemaster.clarion_ext.motivation import drive
 
 
 def _given_move(name: str) -> Move:
@@ -77,7 +78,7 @@ class TestBattleMasterPlayerComponentTests:
         return BattleMasterPlayer(mind_adapter, start_listening=False)
 
     @pytest.mark.parametrize('given_effort', [Effort.AUTOPILOT], indirect=True)
-    @pytest.mark.parametrize('given_drives', [nd.NumDict(default=0.)], indirect=True)
+    @pytest.mark.parametrize('given_drives', [nd.NumDict({drive.DO_DAMAGE: 5.}, default=0.)], indirect=True)
     def test_chooses_super_effective_move(self, player: BattleMasterPlayer, battle, perception_factory, given_effort, given_drives):
         battle.available_moves = [_given_move('darkpulse'), _given_move('bodyslam')]
         battle.opponent_active_pokemon = self._given_opposing_pokemon('ghost')
