@@ -31,6 +31,7 @@ MS_OUT_WM_INTERFACE = cl.RegisterArray.Interface(
     vops=tuple(source.value for source in MsWmSource)
 )
 
+
 class McsWmSource(str, Enum):
     GOAL = 'goal'
 

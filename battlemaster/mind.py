@@ -16,8 +16,8 @@ from .clarion_ext.working_memory import (
 from .clarion_ext.simulation import MentalSimulation
 from .clarion_ext.filters import ReasoningPath
 from .clarion_ext.motivation import (
-    drive, goal, DriveStrength, DoDamageDriveEvaluator, KoOpponentDriveEvaluator, KeepPokemonAliveEvaluator,
-    KeepHealthyEvaluator, ConstantDriveEvaluator
+    drive, goal, GoalType, DriveStrength, DoDamageDriveEvaluator, KoOpponentDriveEvaluator,
+    KeepPokemonAliveEvaluator, KeepHealthyEvaluator, ConstantDriveEvaluator
 )
 from .adapters.clarion_adapter import BattleConcept
 from .adapters.poke_engine_adapter import Simulator
@@ -29,7 +29,7 @@ def _define_goals() -> cl.Chunks:
     goal_chunks = cl.Chunks()
 
     goal_chunks.define(
-        goal('preserve'),
+        goal('preserve', GoalType.SWITCH),
         drive('keep_pokemon_alive'),
         drive('keep_type_advantage'),
         drive('keep_healthy'),
@@ -37,7 +37,7 @@ def _define_goals() -> cl.Chunks:
         drive('have_super_effective_move_available'),
     )
     goal_chunks.define(
-        goal('deal_damage'),
+        goal('deal_damage', GoalType.MOVE),
         drive('ko_opponent'),
         drive('do_damage'),
         #drive('prevent_opponent_buff'),
@@ -45,13 +45,13 @@ def _define_goals() -> cl.Chunks:
         drive('reveal_hidden_information'),
     )
     goal_chunks.define(
-        goal('advance_game'),
+        goal('advance_game', GoalType.MOVE),
         drive('ko_opponent'),
         drive('do_damage'),
         drive('reveal_hidden_information'),
     )
     goal_chunks.define(
-        goal('switch'),
+        goal('switch', GoalType.SWITCH),
         drive('keep_pokemon_alive'),
         drive('keep_healthy'),
         #drive('prevent_opponent_buff'),
@@ -211,6 +211,8 @@ def create_agent() -> Tuple[cl.Structure, cl.Construct]:
             cl.Construct(name=cl.terminus('effort'), process=cl.ActionSelector(source=cl.features('effort_main'), interface=EFFORT_INTERFACE, temperature=0.01))
 
         with nacs:
+            cl.Construct(name=cl.chunks('goal_in'), process=cl.MaxNodes(sources=[buffer("wm_mcs_out")]))
+
             cl.Construct(name=cl.chunks("opponent_type_in"), process=AttentionFilter(base=cl.MaxNodes(sources=[buffer("stimulus")]), attend_to=[BattleConcept.ACTIVE_OPPONENT_TYPE]))
             cl.Construct(name=cl.chunks("available_moves_in"), process=AttentionFilter(base=cl.MaxNodes(sources=[buffer("stimulus")]), attend_to=[BattleConcept.AVAILABLE_MOVES]))
             cl.Construct(name=cl.chunks("available_switches_in"), process=AttentionFilter(base=cl.MaxNodes(sources=[buffer("stimulus")]), attend_to=[BattleConcept.AVAILABLE_SWITCHES]))
@@ -229,7 +231,7 @@ def create_agent() -> Tuple[cl.Structure, cl.Construct]:
 
             cl.Construct(name=cl.chunks("generate_and_test"),
                          process=ReasoningPath(
-                             base=MentalSimulation(stimulus_source=cl.buffer('stimulus'), simulator=nacs.assets.mental_simulator),
+                             base=MentalSimulation(stimulus_source=cl.buffer('stimulus'), goal_source=cl.chunks('goal_in'), simulator=nacs.assets.mental_simulator),
                              controller=cl.buffer("mcs_effort_gate"),
                              interface=EFFORT_INTERFACE,
                              pidx=Effort.TRY_HARD.index

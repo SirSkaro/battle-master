@@ -8,7 +8,7 @@ from pyClarion.base.realizers import Pt
 
 class GroupedChunk(cl.chunk):
     """A chunk symbol with extra metadata attaching it to a group"""
-    __slots__ = ('_args', 'group')
+    __slots__ = ('group',)
     group: str
 
     def __init__(self, cid: Hashable, group: str) -> None:

@@ -1,7 +1,7 @@
 from abc import abstractmethod
 from enum import Enum
 import typing
-from typing import Mapping, Any, Dict, Callable
+from typing import Mapping, Any, Dict, Callable, Hashable
 
 import pyClarion as cl
 from pyClarion import nd
@@ -33,8 +33,27 @@ class drive(feature, Enum):
             super(feature, self).__setattr__(key, value)
 
 
+class GoalType(Enum):
+    ANY = 'any'
+    MOVE = 'move'
+    SWITCH = 'switch'
+
+
 class goal(cl.chunk):
-    pass
+    """A goal symbol that can be treated like a normal chunk."""
+    __slots__ = ('type',)
+    type: GoalType
+
+    def __init__(self, cid: Hashable, type: GoalType = GoalType.ANY):
+        self.type = type
+        super().__init__(cid)
+
+    def __repr__(self):
+        cls_name = type(self).__name__
+        return "{}({}|{})".format(cls_name, self.cid, self.type.value())
+
+    def __setattr__(self, key, value):
+        object.__setattr__(self, key, value)
 
 
 DRIVE_DOMAIN = cl.Domain(features=tuple([d for d in drive]))
@@ -134,3 +153,5 @@ class ConstantDriveEvaluator(DriveEvaluator):
 
     def evaluate(self, stimulus: GroupedStimulus) -> float:
         return self._strength
+
+# TODO class KeepTypeAdvantageDriveEvaluator(DriveEvaluator):

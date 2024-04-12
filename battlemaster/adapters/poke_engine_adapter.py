@@ -1,6 +1,7 @@
-from typing import Mapping, List, Callable
+from typing import Mapping, List, Optional
 from collections import defaultdict
 from enum import Enum
+from functools import partial
 
 from poke_env.environment import Battle, Pokemon, Effect, Field
 from poke_engine import Battle as Simulation, Battler, Pokemon as PokemonSimulation, constants, StateMutator
@@ -15,16 +16,19 @@ from ..clarion_ext.numdicts_ext import get_chunk_from_numdict, get_only_value_fr
 
 
 class OptionFilter(Enum):
-    NO_FILTER = lambda option: True
-    MOVES = lambda option: not option.startswith(SWITCH_STRING)
-    SWITCHES = lambda option: option.startswith(SWITCH_STRING)
+    NO_FILTER = partial(lambda option: True)
+    MOVES = partial(lambda option: not option.startswith(SWITCH_STRING))
+    SWITCHES = partial(lambda option: option.startswith(SWITCH_STRING))
+
+    def __call__(self, *args, **kwargs):
+        return self.value(*args, **kwargs)
 
 
 class Simulator:
     def __init__(self):
         pass
 
-    def pick_safest_move(self, simulation: Simulation, user_option_filter: OptionFilter = OptionFilter.NO_FILTER) -> str:
+    def pick_safest_move(self, simulation: Simulation, user_option_filter: OptionFilter = OptionFilter.NO_FILTER) -> Optional[str]:
         battles = simulation.prepare_battles(guess_mega_evo_opponent=False, join_moves_together=True)
         all_scores = dict()
         for i, battle in enumerate(battles):
@@ -35,6 +39,9 @@ class Simulator:
 
             prefixed_scores = self._prefix_opponent_move(scores, str(i))
             all_scores = {**all_scores, **prefixed_scores}
+
+        if not all_scores:
+            return None
 
         decision, payoff = pick_safest(all_scores, remove_guaranteed=True)
         choice = decision[0]
