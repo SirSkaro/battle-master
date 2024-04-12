@@ -12,6 +12,50 @@ from ..clarion_ext.attention import GroupedChunkInstance
 from .numdicts_ext import filter_chunks_by_group, get_chunk_from_numdict, get_only_value_from_numdict
 
 
+class GoalType(str, Enum):
+    ANY = 'any', 0
+    MOVE = 'move', 1
+    SWITCH = 'switch', 2
+
+    def __new__(cls, *args, **kwargs):
+        obj = str.__new__(cls)
+        obj._value_ = args[0]
+        return obj
+
+    def __init__(self, _: str, index: int):
+        self._index = index
+
+    def __str__(self) -> str:
+        return self.value
+
+    @property
+    def index(self):
+        return self._index
+
+
+class goal(cl.chunk):
+    """A goal symbol that can be treated like a normal chunk."""
+    __slots__ = ('type',)
+    type: GoalType
+
+    def __init__(self, cid: Hashable, type: GoalType = GoalType.ANY):
+        self.type = type
+        super().__init__(cid)
+
+    def __repr__(self):
+        cls_name = type(self).__name__
+        return "{}({}|{})".format(cls_name, self.cid, self.type.value())
+
+    def __setattr__(self, key, value):
+        object.__setattr__(self, key, value)
+
+
+GOAL_GATE_INTERFACE = cl.ParamSet.Interface(
+    name="gate",
+    pmkrs=("stimulus", "associations", "bottom-up")
+)
+
+
 class drive(feature, Enum):
     KEEP_POKEMON_ALIVE = 'keep_pokemon_alive'
     HAVE_MORE_POKEMON_THAN_OPPONENT = 'have_more_pokemon_than_opponent'
@@ -31,29 +75,6 @@ class drive(feature, Enum):
             super(Enum, self).__setattr__(key, value)
         else:
             super(feature, self).__setattr__(key, value)
-
-
-class GoalType(Enum):
-    ANY = 'any'
-    MOVE = 'move'
-    SWITCH = 'switch'
-
-
-class goal(cl.chunk):
-    """A goal symbol that can be treated like a normal chunk."""
-    __slots__ = ('type',)
-    type: GoalType
-
-    def __init__(self, cid: Hashable, type: GoalType = GoalType.ANY):
-        self.type = type
-        super().__init__(cid)
-
-    def __repr__(self):
-        cls_name = type(self).__name__
-        return "{}({}|{})".format(cls_name, self.cid, self.type.value())
-
-    def __setattr__(self, key, value):
-        object.__setattr__(self, key, value)
 
 
 DRIVE_DOMAIN = cl.Domain(features=tuple([d for d in drive]))

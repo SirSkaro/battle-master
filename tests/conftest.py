@@ -7,7 +7,7 @@ from pyClarion import nd
 from poke_env.data import GenData
 
 from battlemaster import mind
-from battlemaster.clarion_ext.positioning import DecideEffort, EFFORT_INTERFACE
+from battlemaster.clarion_ext.effort import DecideEffort, EFFORT_INTERFACE
 from battlemaster.clarion_ext.motivation import DriveStrength
 
 

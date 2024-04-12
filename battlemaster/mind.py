@@ -7,7 +7,7 @@ from poke_env import gen_data
 
 from .clarion_ext.attention import NamedStimuli, AttentionFilter
 from .clarion_ext.pokemon_efficacy import EffectiveMoves, EffectiveSwitches
-from .clarion_ext.positioning import DecideEffort, Effort, EFFORT_INTERFACE
+from .clarion_ext.effort import DecideEffort, Effort, EFFORT_INTERFACE
 from .clarion_ext.working_memory import (
     NACS_OUT_WM_INTERFACE, NacsWmSource,
     MS_OUT_WM_INTERFACE, MsWmSource,

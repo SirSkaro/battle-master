@@ -9,8 +9,9 @@ from poke_env.data import GenData
 from battlemaster.clarion_ext.attention import GroupedStimulusInput
 from battlemaster.clarion_ext.simulation import MentalSimulation
 from battlemaster.adapters.clarion_adapter import BattleConcept
-from battlemaster.clarion_ext.positioning import Effort
-from battlemaster.clarion_ext.motivation import drive, goal
+from battlemaster.clarion_ext.effort import Effort
+from battlemaster.clarion_ext.motivation import drive, goal, GoalType
+from battlemaster.clarion_ext.numdicts_ext import get_only_value_from_numdict
 
 
 @pytest.fixture
@@ -162,11 +163,14 @@ def test_ns_writes_activated_goals_to_working_memory(agent: cl.Structure, stimul
 
 @pytest.mark.parametrize('given_effort', [Effort.AUTOPILOT], indirect=True)
 @pytest.mark.parametrize('given_drives', [nd.NumDict({drive.DO_DAMAGE: 5.}, default=0.)], indirect=True)
-def test_ns_writes_activated_goals_to_working_memory(agent: cl.Structure, stimulus: cl.Construct, mcs_working_memory: cl.Construct, given_effort, given_drives):
+def test_mcs_writes_selected_goal_to_working_memory(agent: cl.Structure, stimulus: cl.Construct, mcs_working_memory: cl.Construct, given_effort, given_drives):
     perception = GroupedStimulusInput([])
     stimulus.process.input(perception)
     agent.step()
 
     working_memory_contents = mcs_working_memory.output
+    chosen_goal = get_only_value_from_numdict(working_memory_contents)
 
-    assert goal('deal_damage') in working_memory_contents or goal('advance_game') in working_memory_contents
+    assert chosen_goal in [goal('deal_damage'), goal('advance_game')]
+    assert chosen_goal.type == GoalType.MOVE
+

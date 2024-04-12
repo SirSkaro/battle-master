@@ -9,7 +9,7 @@ from pyClarion import nd
 from battlemaster.agents import BattleMasterPlayer
 from battlemaster.adapters.clarion_adapter import MindAdapter, PerceptionFactory, BattleConcept
 from battlemaster.clarion_ext.attention import GroupedStimulusInput
-from battlemaster.clarion_ext.positioning import Effort
+from battlemaster.clarion_ext.effort import Effort
 
 
 def _given_move(name: str) -> Move:
