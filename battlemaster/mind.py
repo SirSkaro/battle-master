@@ -233,23 +233,22 @@ def create_agent() -> Tuple[cl.Structure, cl.Construct]:
             cl.Construct(name=cl.flow_tt("effective_available_moves"),
                          process=ReasoningPath(
                              base=EffectiveMoves(type_source=cl.chunks("opponent_type_in"), move_source=cl.chunks("available_moves_in"), move_chunks=nacs.assets.move_chunks),
-                             controller=cl.buffer("mcs_effort_gate"),
-                             interface=EFFORT_INTERFACE,
-                             pidx=Effort.AUTOPILOT.index))
+                             controllers=[cl.buffer("mcs_effort_gate"), cl.buffer('mcs_goal_gate')],
+                             interfaces=[EFFORT_INTERFACE, GOAL_GATE_INTERFACE],
+                             pidxs=[Effort.AUTOPILOT.index, GoalType.MOVE.index]))
             cl.Construct(name=cl.flow_tt("effective_available_switches"),
                          process=ReasoningPath(
                              base=EffectiveSwitches(type_source=cl.chunks("opponent_type_in"), switch_source=cl.chunks("available_switches_in"), pokemon_chunks=nacs.assets.pokemon_chunks),
-                             controller=cl.buffer("mcs_effort_gate"),
-                             interface=EFFORT_INTERFACE,
-                             pidx=Effort.AUTOPILOT.index))
+                             controllers=[cl.buffer("mcs_effort_gate"), cl.buffer('mcs_goal_gate')],
+                             interfaces=[EFFORT_INTERFACE, GOAL_GATE_INTERFACE],
+                             pidxs=[Effort.AUTOPILOT.index, GoalType.SWITCH.index]))
 
             cl.Construct(name=cl.chunks("generate_and_test"),
                          process=ReasoningPath(
                              base=MentalSimulation(stimulus_source=cl.buffer('stimulus'), goal_source=cl.chunks('goal_in'), simulator=nacs.assets.mental_simulator),
-                             controller=cl.buffer("mcs_effort_gate"),
-                             interface=EFFORT_INTERFACE,
-                             pidx=Effort.TRY_HARD.index
-                         ))
+                             controllers=[cl.buffer("mcs_effort_gate")],
+                             interfaces=[EFFORT_INTERFACE],
+                             pidxs=[Effort.TRY_HARD.index]))
 
             cl.Construct(name=cl.chunks("out"), process=cl.MaxNodes(sources=[cl.flow_tt("effective_available_moves"), cl.flow_tt("effective_available_switches"), cl.chunks("generate_and_test")]))
             cl.Construct(name=cl.terminus("main"), process=cl.ThresholdSelector(source=chunks("out"), threshold=0.001))
