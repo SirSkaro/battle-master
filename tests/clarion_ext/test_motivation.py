@@ -59,26 +59,49 @@ class TestDriveStrength:
 class TestDoDamageDriveEvaluator:
     @pytest.fixture
     def stimulus(self, request) -> GroupedStimulus:
-        is_force_switch = request.param
-        return {
-            BattleConcept.BATTLE: nd.NumDict({
-                GroupedChunkInstance('metadata', BattleConcept.BATTLE, [cl.feature('force_switch', is_force_switch)]): 1.
-            })
+        is_force_switch = request.param[0]
+        has_active_pokemon = request.param[1]
+        opponent_has_active_pokemon = request.param[2]
+        stimulus = {
+            BattleConcept.BATTLE: nd.NumDict({GroupedChunkInstance('metadata', BattleConcept.BATTLE,[cl.feature('force_switch', is_force_switch)]): 1.
+            }),
+            BattleConcept.ACTIVE_POKEMON: nd.MutableNumDict({}),
+            BattleConcept.OPPONENT_ACTIVE_POKEMON: nd.MutableNumDict({}),
         }
+
+        if has_active_pokemon:
+            stimulus[BattleConcept.ACTIVE_POKEMON][
+                GroupedChunkInstance('ironbundle', BattleConcept.ACTIVE_POKEMON, [])] = 1.0
+
+        if opponent_has_active_pokemon:
+            stimulus[BattleConcept.OPPONENT_ACTIVE_POKEMON][
+                GroupedChunkInstance('giratina', BattleConcept.OPPONENT_ACTIVE_POKEMON, [])] = 1.0
+
+        return stimulus
 
     @pytest.fixture
     def evaluator(self):
         return DoDamageDriveEvaluator()
 
-    @pytest.mark.parametrize('stimulus', [True], indirect=True)
+    @pytest.mark.parametrize('stimulus', [(True, True, True)], indirect=True)
     def test_evaluate_force_switch(self, evaluator: DoDamageDriveEvaluator, stimulus):
         strength = evaluator.evaluate(stimulus)
         assert strength == 0.0
 
-    @pytest.mark.parametrize('stimulus', [False], indirect=True)
+    @pytest.mark.parametrize('stimulus', [(False, True, True)], indirect=True)
     def test_evaluate_not_force_switch(self, evaluator: DoDamageDriveEvaluator, stimulus):
         strength = evaluator.evaluate(stimulus)
         assert strength == 5.0
+
+    @pytest.mark.parametrize('stimulus', [(True, False, True)], indirect=True)
+    def test_evaluate_no_active_pokemon(self, evaluator: DoDamageDriveEvaluator, stimulus):
+        strength = evaluator.evaluate(stimulus)
+        assert strength == 0.0
+
+    @pytest.mark.parametrize('stimulus', [(True, True, False)], indirect=True)
+    def test_evaluate_no_opponent_active_pokemon(self, evaluator: DoDamageDriveEvaluator, stimulus):
+        strength = evaluator.evaluate(stimulus)
+        assert strength == 0.0
 
 
 class TestKoOpponentDriveEvaluator:
@@ -193,12 +216,12 @@ class TestKeepTypeAdvantageDriveEvaluator:
         return KeepTypeAdvantageDriveEvaluator()
 
     @pytest.mark.parametrize('stimulus', [True], indirect=True)
-    def test_evaluate_force_switch(self, evaluator: DoDamageDriveEvaluator, stimulus):
+    def test_evaluate_force_switch(self, evaluator: KeepTypeAdvantageDriveEvaluator, stimulus):
         strength = evaluator.evaluate(stimulus)
         assert strength == 5.0
 
     @pytest.mark.parametrize('stimulus', [False], indirect=True)
-    def test_evaluate_not_force_switch(self, evaluator: DoDamageDriveEvaluator, stimulus):
+    def test_evaluate_not_force_switch(self, evaluator: KeepTypeAdvantageDriveEvaluator, stimulus):
         strength = evaluator.evaluate(stimulus)
         assert strength == 0.0
 

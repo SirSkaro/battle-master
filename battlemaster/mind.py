@@ -30,14 +30,6 @@ def _define_goals() -> cl.Chunks:
     goal_chunks = cl.Chunks()
 
     goal_chunks.define(
-        goal('preserve', GoalType.SWITCH),
-        drive('keep_pokemon_alive'),
-        #drive('keep_type_advantage'),
-        drive('keep_healthy'),
-        drive('have_more_pokemon_than_opponent'),
-        #drive('have_super_effective_move_available'),
-    )
-    goal_chunks.define(
         goal('deal_damage', GoalType.MOVE),
         #drive('ko_opponent'),
         drive('do_damage'),
@@ -48,11 +40,15 @@ def _define_goals() -> cl.Chunks:
     goal_chunks.define(
         goal('advance_game', GoalType.MOVE),
         drive('ko_opponent'),
-        #drive('do_damage'),
         drive('reveal_hidden_information'),
     )
     goal_chunks.define(
-        goal('switch', GoalType.SWITCH),
+        goal('preserve', GoalType.SWITCH),
+        drive('keep_pokemon_alive'),
+        drive('have_more_pokemon_than_opponent'),
+    )
+    goal_chunks.define(
+        goal('initiate_advantage', GoalType.SWITCH),
         #drive('keep_pokemon_alive'),
         #drive('keep_healthy'),
         #drive('prevent_opponent_buff'),
@@ -60,6 +56,13 @@ def _define_goals() -> cl.Chunks:
         #drive('have_super_effective_move_available'),
         drive('reveal_hidden_information'),
         drive('keep_type_advantage'),
+    )
+    goal_chunks.define(
+        goal('reposition', GoalType.SWITCH),
+        drive('keep_healthy'),
+        drive('prevent_type_disadvantage'),
+        # drive('have_super_effective_move_available'),
+        drive('reveal_hidden_information'),
     )
 
     return goal_chunks
@@ -136,7 +139,7 @@ def create_agent() -> Tuple[cl.Structure, cl.Construct]:
                     #drive('debuff_opponent'): ConstantDriveEvaluator(1.0).evaluate,
                     #drive('prevent_opponent_buff'): ConstantDriveEvaluator(2.0).evaluate,
                     drive('keep_type_advantage'): KeepTypeAdvantageDriveEvaluator().evaluate,
-                    drive('prevent_type_disadvantage'): ConstantDriveEvaluator(1.0).evaluate,
+                    drive('prevent_type_disadvantage'): ConstantDriveEvaluator(2.5).evaluate,
                     drive('have_super_effective_move_available'): ConstantDriveEvaluator(1.0).evaluate,
                     drive('reveal_hidden_information'): RevealHiddenInformationDriveEvaluator().evaluate
                 }

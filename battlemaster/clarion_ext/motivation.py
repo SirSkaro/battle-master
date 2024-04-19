@@ -162,14 +162,21 @@ class GaussianTargetEvaluator(DriveEvaluator):
 class DoDamageDriveEvaluator(DriveEvaluator):
     def evaluate(self, stimulus: GroupedStimulus) -> float:
         battle_metadata = typing.cast(GroupedChunkInstance, get_chunk_from_numdict('metadata', stimulus[BattleConcept.BATTLE]))
+        active_pokemon = stimulus[BattleConcept.ACTIVE_POKEMON]
+        opponent_active_pokemon = stimulus[BattleConcept.OPPONENT_ACTIVE_POKEMON]
+
         is_force_switch_turn = battle_metadata.get_feature_value('force_switch')
-        return 0.0 if is_force_switch_turn else 5.
+        has_active_pokemon = not is_empty(active_pokemon)
+        opponent_has_active_pokemon = not is_empty(opponent_active_pokemon)
+        can_do_damage = has_active_pokemon and opponent_has_active_pokemon and not is_force_switch_turn
+
+        return 5.0 if can_do_damage else 0.
 
 
 class KoOpponentDriveEvaluator(DriveEvaluator):
     def evaluate(self, stimulus: GroupedStimulus) -> float:
         opponent_active_pokemon_perception = stimulus[BattleConcept.OPPONENT_ACTIVE_POKEMON]
-        if len(opponent_active_pokemon_perception) == 0:
+        if is_empty(opponent_active_pokemon_perception):
             return 0.
 
         opponent_active_pokemon = typing.cast(GroupedChunkInstance, get_only_value_from_numdict(opponent_active_pokemon_perception))
