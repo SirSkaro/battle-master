@@ -18,7 +18,7 @@ from .clarion_ext.filters import ReasoningPath
 from .clarion_ext.motivation import (
     drive, goal, GoalType, DriveStrength, GoalGateAdapter, GOAL_GATE_INTERFACE,
     DoDamageDriveEvaluator, KoOpponentDriveEvaluator, KeepPokemonAliveEvaluator, KeepHealthyEvaluator,
-    ConstantDriveEvaluator, KeepTypeAdvantageDriveEvaluator
+    ConstantDriveEvaluator, KeepTypeAdvantageDriveEvaluator, RevealHiddenInformationDriveEvaluator
 )
 from .adapters.clarion_adapter import BattleConcept
 from .adapters.poke_engine_adapter import Simulator
@@ -32,14 +32,14 @@ def _define_goals() -> cl.Chunks:
     goal_chunks.define(
         goal('preserve', GoalType.SWITCH),
         drive('keep_pokemon_alive'),
-        drive('keep_type_advantage'),
+        #drive('keep_type_advantage'),
         drive('keep_healthy'),
         drive('have_more_pokemon_than_opponent'),
         #drive('have_super_effective_move_available'),
     )
     goal_chunks.define(
         goal('deal_damage', GoalType.MOVE),
-        drive('ko_opponent'),
+        #drive('ko_opponent'),
         drive('do_damage'),
         #drive('prevent_opponent_buff'),
         #drive('keep_pokemon_alive'),
@@ -48,20 +48,19 @@ def _define_goals() -> cl.Chunks:
     goal_chunks.define(
         goal('advance_game', GoalType.MOVE),
         drive('ko_opponent'),
-        drive('do_damage'),
+        #drive('do_damage'),
         drive('reveal_hidden_information'),
     )
-
     goal_chunks.define(
         goal('switch', GoalType.SWITCH),
         #drive('keep_pokemon_alive'),
-        drive('keep_healthy'),
+        #drive('keep_healthy'),
         #drive('prevent_opponent_buff'),
         #drive('prevent_type_disadvantage'),
         #drive('have_super_effective_move_available'),
         drive('reveal_hidden_information'),
+        drive('keep_type_advantage'),
     )
-
 
     return goal_chunks
 
@@ -139,7 +138,7 @@ def create_agent() -> Tuple[cl.Structure, cl.Construct]:
                     drive('keep_type_advantage'): KeepTypeAdvantageDriveEvaluator().evaluate,
                     drive('prevent_type_disadvantage'): ConstantDriveEvaluator(1.0).evaluate,
                     drive('have_super_effective_move_available'): ConstantDriveEvaluator(1.0).evaluate,
-                    drive('reveal_hidden_information'): ConstantDriveEvaluator(1.0).evaluate
+                    drive('reveal_hidden_information'): RevealHiddenInformationDriveEvaluator().evaluate
                 }
             )
         )

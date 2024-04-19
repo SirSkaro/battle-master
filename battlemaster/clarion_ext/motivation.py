@@ -2,7 +2,7 @@ import logging
 from abc import abstractmethod
 from enum import Enum
 import typing
-from typing import Mapping, Any, Dict, Callable, Hashable
+from typing import Mapping, Any, Dict, Callable, Hashable, Tuple
 import math
 
 import pyClarion as cl
@@ -11,7 +11,7 @@ from pyClarion import feature
 
 from ..adapters.clarion_adapter import BattleConcept
 from ..clarion_ext.attention import GroupedChunkInstance
-from .numdicts_ext import filter_chunks_by_group, get_chunk_from_numdict, get_only_value_from_numdict
+from .numdicts_ext import filter_chunks_by_group, get_chunk_from_numdict, get_only_value_from_numdict, is_empty
 
 
 class GoalType(str, Enum):
@@ -209,6 +209,52 @@ class KeepTypeAdvantageDriveEvaluator(DriveEvaluator):
         battle_metadata = typing.cast(GroupedChunkInstance, get_chunk_from_numdict('metadata', stimulus[BattleConcept.BATTLE]))
         is_force_switch_turn = battle_metadata.get_feature_value('force_switch')
         return 5.0 if is_force_switch_turn else 0.
+
+
+class RevealHiddenInformationDriveEvaluator(DriveEvaluator):
+    def evaluate(self, stimulus: GroupedStimulus) -> float:
+        opponent_active_pokemon_perception: nd.NumDict = stimulus[BattleConcept.OPPONENT_ACTIVE_POKEMON]
+        opponent_team_perception: nd.NumDict = stimulus[BattleConcept.OPPONENT_TEAM]
+        total_pokemon_count, unknown_pokemon_count = self._count_unknown_pokemon(opponent_active_pokemon_perception, opponent_team_perception)
+        total_move_count, unknown_move_count = self._count_unknown_moves(total_pokemon_count, opponent_active_pokemon_perception, opponent_team_perception)
+        total_ability_count, unknown_ability_count = self._count_unknown_abilities(total_pokemon_count, opponent_active_pokemon_perception, opponent_team_perception)
+        total_item_count, unknown_item_count = self._count_unknown_items(total_pokemon_count, opponent_active_pokemon_perception, opponent_team_perception)
+
+        total_unknown_information_count = unknown_pokemon_count + unknown_move_count + unknown_ability_count + unknown_item_count
+        total_possible_information_count = total_pokemon_count + total_move_count + total_ability_count + total_item_count
+
+        return 5 * (total_unknown_information_count / total_possible_information_count)
+
+    def _count_unknown_pokemon(self, opponent_active_pokemon: nd.NumDict, opponent_team: nd.NumDict) -> Tuple[int, int]:
+        total_pokemon = 6
+        active_count = 0 if is_empty(opponent_active_pokemon) else 1
+        unknown_count = 6 - len(opponent_team) - active_count
+        return total_pokemon, unknown_count
+
+    def _count_unknown_moves(self, total_pokemon_count: int, opponent_active_pokemon: nd.NumDict, opponent_team: nd.NumDict) -> Tuple[int, int]:
+        total_possible_move_count = total_pokemon_count * 4
+        known_move_count = self._count_known_feature(opponent_active_pokemon, opponent_team, 'move')
+        return total_possible_move_count, total_possible_move_count - known_move_count
+
+    def _count_unknown_abilities(self, total_pokemon_count: int, opponent_active_pokemon: nd.NumDict, opponent_team: nd.NumDict) -> Tuple[int, int]:
+        total_possible_ability_count = total_pokemon_count * 1
+        known_ability_count = self._count_known_feature(opponent_active_pokemon, opponent_team, 'ability')
+        return total_possible_ability_count, total_possible_ability_count - known_ability_count
+
+    def _count_unknown_items(self, total_pokemon_count: int, opponent_active_pokemon: nd.NumDict, opponent_team: nd.NumDict) -> Tuple[int, int]:
+        total_possible_item_count = total_pokemon_count * 1
+        known_item_count = self._count_known_feature(opponent_active_pokemon, opponent_team, 'item')
+        return total_possible_item_count, total_possible_item_count - known_item_count
+
+    def _count_known_feature(self, opponent_active_pokemon: nd.NumDict, opponent_team: nd.NumDict, feature_name: str) -> int:
+        count = len(get_only_value_from_numdict(opponent_active_pokemon).get_feature(feature_name)) if not is_empty(opponent_active_pokemon) else 0
+        for pokemon_chunk in opponent_team:
+            is_fainted = pokemon_chunk.get_feature_value('fainted')
+            if not is_fainted:
+                features = pokemon_chunk.get_feature(feature_name)
+                count += len([feature for feature in features if feature.val is not None])
+
+        return count
 
 
 class ConstantDriveEvaluator(DriveEvaluator):

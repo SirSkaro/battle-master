@@ -149,7 +149,7 @@ def test_ns_writes_drives_to_working_memory(agent: cl.Structure, stimulus: cl.Co
 
 
 @pytest.mark.parametrize('given_effort', [Effort.AUTOPILOT], indirect=True)
-@pytest.mark.parametrize('given_drives', [nd.NumDict({drive.DO_DAMAGE: 5.}, default=0.)], indirect=True)
+@pytest.mark.parametrize('given_drives', [nd.NumDict({drive.DO_DAMAGE: 5., drive.KO_OPPONENT: 5.}, default=0.)], indirect=True)
 def test_ns_writes_activated_goals_to_working_memory(agent: cl.Structure, stimulus: cl.Construct, ms_working_memory: cl.Construct, given_effort, given_drives):
     perception = GroupedStimulusInput([])
     stimulus.process.input(perception)

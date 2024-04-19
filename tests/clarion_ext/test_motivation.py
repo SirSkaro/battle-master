@@ -9,7 +9,7 @@ from battlemaster.clarion_ext.attention import GroupedChunk, GroupedChunkInstanc
 from battlemaster.clarion_ext.motivation import (
     drive, DoDamageDriveEvaluator, KoOpponentDriveEvaluator, DriveStrength, GroupedStimulus,
     KeepPokemonAliveEvaluator, KeepHealthyEvaluator, ConstantDriveEvaluator,
-    KeepTypeAdvantageDriveEvaluator
+    KeepTypeAdvantageDriveEvaluator, RevealHiddenInformationDriveEvaluator
 )
 
 
@@ -203,6 +203,61 @@ class TestKeepTypeAdvantageDriveEvaluator:
         assert strength == 0.0
 
 
+class TestRevealHiddenInformationDriveEvaluator:
+    @pytest.fixture
+    def stimulus(self) -> GroupedStimulus:
+        return {
+            BattleConcept.OPPONENT_ACTIVE_POKEMON: nd.NumDict({
+                GroupedChunkInstance('dratini', BattleConcept.OPPONENT_ACTIVE_POKEMON,
+                                     [cl.feature('move', 'wrap'), cl.feature('move', 'agility'), cl.feature('move', 'leer'), cl.feature('move', 'extremespeed'),
+                                      cl.feature('ability', 'shedskin'), cl.feature('item', 'dragonscale'),
+                                      cl.feature('fainted', False)]): 1.,
+            }),
+            BattleConcept.OPPONENT_TEAM: nd.NumDict({
+                GroupedChunkInstance('beldum', BattleConcept.OPPONENT_TEAM,
+                                     [cl.feature('move', 'takedown'),
+                                      cl.feature('ability', 'clearbody'), cl.feature('item', None),
+                                      cl.feature('fainted', False)]): 1.,
+                GroupedChunkInstance('litwick', BattleConcept.OPPONENT_TEAM,
+                                     [cl.feature('ability', None), cl.feature('item', 'focussash'),
+                                      cl.feature('fainted', False)]): 1.
+            })
+        }
+
+    @pytest.fixture
+    def evaluator(self):
+        return RevealHiddenInformationDriveEvaluator()
+
+    def test_count_pokemon(self, evaluator: RevealHiddenInformationDriveEvaluator, stimulus):
+        total, unknown = evaluator._count_unknown_pokemon(stimulus[BattleConcept.OPPONENT_ACTIVE_POKEMON], stimulus[BattleConcept.OPPONENT_TEAM])
+
+        assert total == 6
+        assert unknown == 3
+
+    def test_count_moves(self, evaluator: RevealHiddenInformationDriveEvaluator, stimulus):
+        total, unknown = evaluator._count_unknown_moves(6, stimulus[BattleConcept.OPPONENT_ACTIVE_POKEMON], stimulus[BattleConcept.OPPONENT_TEAM])
+
+        assert total == 24
+        assert unknown == 19
+
+    def test_count_abilities(self, evaluator: RevealHiddenInformationDriveEvaluator, stimulus):
+        total, unknown = evaluator._count_unknown_abilities(6, stimulus[BattleConcept.OPPONENT_ACTIVE_POKEMON], stimulus[BattleConcept.OPPONENT_TEAM])
+
+        assert total == 6
+        assert unknown == 4
+
+    def test_count_items(self, evaluator: RevealHiddenInformationDriveEvaluator, stimulus):
+        total, unknown = evaluator._count_unknown_items(6, stimulus[BattleConcept.OPPONENT_ACTIVE_POKEMON], stimulus[BattleConcept.OPPONENT_TEAM])
+
+        assert total == 6
+        assert unknown == 4
+
+    def test_evaluate(self, evaluator: RevealHiddenInformationDriveEvaluator, stimulus):
+        strength = evaluator.evaluate(stimulus)
+
+        assert strength == 5 * 30/42
+
+
 class TestConstantDriveEvaluator:
     def test_evaluate(self):
         constant_strength = 3.2
@@ -210,4 +265,3 @@ class TestConstantDriveEvaluator:
         strength = evaluator.evaluate({})
 
         assert strength == constant_strength
-
