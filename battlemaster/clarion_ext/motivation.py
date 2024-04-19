@@ -137,6 +137,28 @@ class DriveEvaluator:
         pass
 
 
+class GaussianTargetEvaluator(DriveEvaluator):
+    '''
+    The closer the current percentage is to the target percentage, the stronger this drive evaluates. Uses a gaussian
+    over the mean (target percentage) and takes the normalized output of the gaussian rather than sampling.
+    '''
+    def __init__(self, target_percentage):
+        self.target_percentage = target_percentage
+
+    @abstractmethod
+    def evaluate(self, stimulus: GroupedStimulus) -> float:
+        pass
+
+    def calculate_drive_strength(self, current_percentage):
+        max = self._normal_dist(self.target_percentage, self.target_percentage)
+        normalized_multiplier = self._normal_dist(current_percentage, self.target_percentage) / max
+        return 5 * normalized_multiplier
+
+    @staticmethod
+    def _normal_dist(x, mean, sigma=0.15):
+        return (1 / (sigma * math.sqrt(2 * math.pi))) * (math.exp(-0.5 * math.pow(((x - mean) / sigma), 2)))
+
+
 class DoDamageDriveEvaluator(DriveEvaluator):
     def evaluate(self, stimulus: GroupedStimulus) -> float:
         battle_metadata = typing.cast(GroupedChunkInstance, get_chunk_from_numdict('metadata', stimulus[BattleConcept.BATTLE]))
@@ -175,12 +197,12 @@ class KeepPokemonAliveEvaluator(DriveEvaluator):
             return drive_multiplier * 5
 
 
-class KeepHealthyEvaluator(DriveEvaluator):
+class KeepHealthyEvaluator(GaussianTargetEvaluator):
     '''
     The closer the Pokemon is to the target health percentage, the stronger this drive evaluates
     '''
     def __init__(self, target_percentage):
-        self._target_percentage = target_percentage
+        super(KeepHealthyEvaluator, self).__init__(target_percentage)
 
     def evaluate(self, stimulus: GroupedStimulus) -> float:
         active_pokemon_perception = stimulus[BattleConcept.ACTIVE_POKEMON]
@@ -192,16 +214,7 @@ class KeepHealthyEvaluator(DriveEvaluator):
         max_hp = active_pokemon.get_feature_value('max_hp')
         hp_percentage = hp / max_hp
 
-        return self._calculate_drive_strength(hp_percentage)
-
-    def _calculate_drive_strength(self, hp_percentage):
-        max = self._normal_dist(self._target_percentage, self._target_percentage)
-        normalized_multiplier = self._normal_dist(hp_percentage, self._target_percentage) / max
-        return 5 * normalized_multiplier
-
-    @staticmethod
-    def _normal_dist(x, mean, sigma=0.15):
-        return (1 / (sigma * math.sqrt(2 * math.pi))) * (math.exp(-0.5 * math.pow(((x - mean) / sigma), 2)))
+        return self.calculate_drive_strength(hp_percentage)
 
 
 class KeepTypeAdvantageDriveEvaluator(DriveEvaluator):
