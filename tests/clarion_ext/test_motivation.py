@@ -160,9 +160,9 @@ class TestKeepHealthyEvaluator:
 
     @pytest.fixture
     def evaluator(self):
-        return KeepHealthyEvaluator()
+        return KeepHealthyEvaluator(0.8)
 
-    @pytest.mark.parametrize('stimulus', [(714, 714)], indirect=True)
+    @pytest.mark.parametrize('stimulus', [(571.2, 714)], indirect=True)
     def test_evaluate_full_health(self, evaluator: KeepHealthyEvaluator, stimulus):
         strength = evaluator.evaluate(stimulus)
         assert strength == 5.0
@@ -170,12 +170,12 @@ class TestKeepHealthyEvaluator:
     @pytest.mark.parametrize('stimulus', [(1, 714)], indirect=True)
     def test_evaluate_one_hp(self, evaluator: KeepHealthyEvaluator, stimulus):
         strength = evaluator.evaluate(stimulus)
-        assert strength == 0.05
+        assert strength < 0.05
 
-    @pytest.mark.parametrize('stimulus', [(357, 714)], indirect=True)
+    @pytest.mark.parametrize('stimulus', [(714, 714)], indirect=True)
     def test_evaluate_half_hp(self, evaluator: KeepHealthyEvaluator, stimulus):
         strength = evaluator.evaluate(stimulus)
-        assert strength == 2.5
+        assert strength < 5.0
 
 
 class TestKeepTypeAdvantageDriveEvaluator:

@@ -3,6 +3,7 @@ from abc import abstractmethod
 from enum import Enum
 import typing
 from typing import Mapping, Any, Dict, Callable, Hashable
+import math
 
 import pyClarion as cl
 from pyClarion import nd
@@ -175,6 +176,12 @@ class KeepPokemonAliveEvaluator(DriveEvaluator):
 
 
 class KeepHealthyEvaluator(DriveEvaluator):
+    '''
+    The closer the Pokemon is to the target health percentage, the stronger this drive evaluates
+    '''
+    def __init__(self, target_percentage):
+        self._target_percentage = target_percentage
+
     def evaluate(self, stimulus: GroupedStimulus) -> float:
         active_pokemon_perception = stimulus[BattleConcept.ACTIVE_POKEMON]
         if len(active_pokemon_perception) == 0:
@@ -185,9 +192,16 @@ class KeepHealthyEvaluator(DriveEvaluator):
         max_hp = active_pokemon.get_feature_value('max_hp')
         hp_percentage = hp / max_hp
 
-        if hp_percentage <= 0.05:
-            return 0.05
-        return hp_percentage * 5
+        return self._calculate_drive_strength(hp_percentage)
+
+    def _calculate_drive_strength(self, hp_percentage):
+        max = self._normal_dist(self._target_percentage, self._target_percentage)
+        normalized_multiplier = self._normal_dist(hp_percentage, self._target_percentage) / max
+        return 5 * normalized_multiplier
+
+    @staticmethod
+    def _normal_dist(x, mean, sigma=0.15):
+        return (1 / (sigma * math.sqrt(2 * math.pi))) * (math.exp(-0.5 * math.pow(((x - mean) / sigma), 2)))
 
 
 class KeepTypeAdvantageDriveEvaluator(DriveEvaluator):
