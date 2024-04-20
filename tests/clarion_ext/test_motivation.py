@@ -125,31 +125,42 @@ class TestKeepPokemonAliveEvaluator:
     def stimulus(self, request) -> GroupedStimulus:
         hp = request.param[0]
         max_hp = request.param[1]
-        return {
+        has_available_switches = request.param[2]
+        stimulus = {
+            BattleConcept.AVAILABLE_SWITCHES: nd.MutableNumDict({}),
             BattleConcept.ACTIVE_POKEMON: nd.NumDict({
-                GroupedChunkInstance('blissey', BattleConcept.ACTIVE_POKEMON,
-                                     [cl.feature('hp', hp), cl.feature('max_hp', max_hp)]): 1.,
+                GroupedChunkInstance('blissey', BattleConcept.ACTIVE_POKEMON,[cl.feature('hp', hp), cl.feature('max_hp', max_hp)]): 1.,
             })
         }
+
+        if has_available_switches:
+            stimulus[BattleConcept.AVAILABLE_SWITCHES][cl.chunk('some_pokemon')] = 1.
+
+        return stimulus
 
     @pytest.fixture
     def evaluator(self):
         return KeepPokemonAliveEvaluator()
 
-    @pytest.mark.parametrize('stimulus', [(714, 714)], indirect=True)
+    @pytest.mark.parametrize('stimulus', [(714, 714, True)], indirect=True)
     def test_evaluate_full_health(self, evaluator: KeepPokemonAliveEvaluator, stimulus):
         strength = evaluator.evaluate(stimulus)
         assert strength == 0.05
 
-    @pytest.mark.parametrize('stimulus', [(1, 714)], indirect=True)
+    @pytest.mark.parametrize('stimulus', [(1, 714, True)], indirect=True)
     def test_evaluate_one_hp(self, evaluator: KeepPokemonAliveEvaluator, stimulus):
         strength = evaluator.evaluate(stimulus)
         assert strength == 5
 
-    @pytest.mark.parametrize('stimulus', [(357, 714)], indirect=True)
+    @pytest.mark.parametrize('stimulus', [(357, 714, True)], indirect=True)
     def test_evaluate_half_hp(self, evaluator: KeepPokemonAliveEvaluator, stimulus):
         strength = evaluator.evaluate(stimulus)
         assert strength == 2.5
+
+    @pytest.mark.parametrize('stimulus', [(357, 714, False)], indirect=True)
+    def test_no_available_switches(self, evaluator: KeepPokemonAliveEvaluator, stimulus):
+        strength = evaluator.evaluate(stimulus)
+        assert strength == 0.0
 
 
 class TestKeepHealthyEvaluator:
@@ -157,31 +168,40 @@ class TestKeepHealthyEvaluator:
     def stimulus(self, request) -> GroupedStimulus:
         hp = request.param[0]
         max_hp = request.param[1]
-        return {
-            BattleConcept.ACTIVE_POKEMON: nd.NumDict({
-                GroupedChunkInstance('blissey', BattleConcept.ACTIVE_POKEMON,
-                                     [cl.feature('hp', hp), cl.feature('max_hp', max_hp)]): 1.,
-            })
+        has_available_switches = request.param[2]
+        stimulus = {
+            BattleConcept.AVAILABLE_SWITCHES: nd.MutableNumDict({}),
+            BattleConcept.ACTIVE_POKEMON: nd.NumDict({GroupedChunkInstance('blissey', BattleConcept.ACTIVE_POKEMON,[cl.feature('hp', hp), cl.feature('max_hp', max_hp)]): 1.})
         }
+
+        if has_available_switches:
+            stimulus[BattleConcept.AVAILABLE_SWITCHES][cl.chunk('some_pokemon')] = 1.
+
+        return stimulus
 
     @pytest.fixture
     def evaluator(self):
         return KeepHealthyEvaluator(0.8)
 
-    @pytest.mark.parametrize('stimulus', [(571.2, 714)], indirect=True)
+    @pytest.mark.parametrize('stimulus', [(571.2, 714, True)], indirect=True)
     def test_evaluate_full_health(self, evaluator: KeepHealthyEvaluator, stimulus):
         strength = evaluator.evaluate(stimulus)
         assert strength == 5.0
 
-    @pytest.mark.parametrize('stimulus', [(1, 714)], indirect=True)
+    @pytest.mark.parametrize('stimulus', [(1, 714, True)], indirect=True)
     def test_evaluate_one_hp(self, evaluator: KeepHealthyEvaluator, stimulus):
         strength = evaluator.evaluate(stimulus)
         assert strength < 0.05
 
-    @pytest.mark.parametrize('stimulus', [(714, 714)], indirect=True)
+    @pytest.mark.parametrize('stimulus', [(714, 714, True)], indirect=True)
     def test_evaluate_half_hp(self, evaluator: KeepHealthyEvaluator, stimulus):
         strength = evaluator.evaluate(stimulus)
         assert strength < 5.0
+
+    @pytest.mark.parametrize('stimulus', [(357, 714, False)], indirect=True)
+    def test_no_available_switches(self, evaluator: KeepPokemonAliveEvaluator, stimulus):
+        strength = evaluator.evaluate(stimulus)
+        assert strength == 0.0
 
 
 class TestKeepTypeAdvantageDriveEvaluator:

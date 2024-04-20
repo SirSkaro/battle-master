@@ -137,7 +137,7 @@ class DriveEvaluator:
         pass
 
 
-class GaussianTargetEvaluator(DriveEvaluator):
+class GaussianTargetDriveEvaluator(DriveEvaluator):
     '''
     The closer the current percentage is to the target percentage, the stronger this drive evaluates. Uses a gaussian
     over the mean (target percentage) and takes the normalized output of the gaussian rather than sampling.
@@ -185,12 +185,12 @@ class KoOpponentDriveEvaluator(DriveEvaluator, InflictDamageAware):
         return ((100 - hp_percentage) / 20) + 0.05
 
 
-class KeepPokemonAliveEvaluator(DriveEvaluator):
+class KeepPokemonAliveEvaluator(DriveEvaluator, SwitchOutAware):
     def evaluate(self, stimulus: GroupedStimulus) -> float:
-        active_pokemon_perception = stimulus[BattleConcept.ACTIVE_POKEMON]
-        if len(active_pokemon_perception) == 0:
+        if not self.can_switch(stimulus):
             return 0.
 
+        active_pokemon_perception = stimulus[BattleConcept.ACTIVE_POKEMON]
         active_pokemon = typing.cast(GroupedChunkInstance, get_only_value_from_numdict(active_pokemon_perception))
         hp = active_pokemon.get_feature_value('hp')
         max_hp = active_pokemon.get_feature_value('max_hp')
@@ -205,7 +205,7 @@ class KeepPokemonAliveEvaluator(DriveEvaluator):
             return drive_multiplier * 5
 
 
-class KeepHealthyEvaluator(GaussianTargetEvaluator):
+class KeepHealthyEvaluator(GaussianTargetDriveEvaluator, SwitchOutAware):
     '''
     The closer the Pokemon is to the target health percentage, the stronger this drive evaluates
     '''
@@ -213,10 +213,10 @@ class KeepHealthyEvaluator(GaussianTargetEvaluator):
         super(KeepHealthyEvaluator, self).__init__(target_percentage)
 
     def evaluate(self, stimulus: GroupedStimulus) -> float:
-        active_pokemon_perception = stimulus[BattleConcept.ACTIVE_POKEMON]
-        if len(active_pokemon_perception) == 0:
+        if not self.can_switch(stimulus):
             return 0.
 
+        active_pokemon_perception = stimulus[BattleConcept.ACTIVE_POKEMON]
         active_pokemon = typing.cast(GroupedChunkInstance, get_only_value_from_numdict(active_pokemon_perception))
         hp = active_pokemon.get_feature_value('hp')
         max_hp = active_pokemon.get_feature_value('max_hp')
