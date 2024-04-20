@@ -2,7 +2,7 @@ import logging
 from abc import abstractmethod
 from enum import Enum
 import typing
-from typing import Mapping, Any, Dict, Callable, Hashable, Tuple
+from typing import Mapping, Any, Dict, Callable, Hashable, Tuple, Optional
 import math
 
 import pyClarion as cl
@@ -82,37 +82,58 @@ class GoalGateAdapter(cl.Process):
 
 class StickyBoltzmannSelector(cl.BoltzmannSelector):
 
-    def __init__(self, source, temperature, threshold):
-        super(StickyBoltzmannSelector, self).__init__(source, temperature, 0.)
-        self._previous_goal: nd.NumDict = None
+    def __init__(self, goal_source, battle_metadata_source, temperature, threshold):
+        super(StickyBoltzmannSelector, self).__init__(goal_source, temperature, 0.)
+        super(cl.BoltzmannSelector, self).__init__([goal_source, battle_metadata_source])
+        self._goal_source = goal_source
+        self._battle_metadata_source = battle_metadata_source
         self.threshold = threshold
+        self._previous_goals = {}
 
     def call(self, inputs: Mapping[Any, nd.NumDict]) -> nd.NumDict:
-        new_goal = super(StickyBoltzmannSelector, self).call(inputs)
+        new_goal = self._sample_new_goal(inputs)
+        previous_goal = self._get_previous_goal(inputs)
 
-        if self._previous_goal is None:
-            self._previous_goal = new_goal
+        if previous_goal is None:
+            self._set_previous_goal(new_goal, inputs)
             return new_goal
 
-        previous_goal_chunk = get_only_value_from_numdict(self._previous_goal)
+        previous_goal_chunk = get_only_value_from_numdict(previous_goal)
         new_goal_chunk = get_only_value_from_numdict(new_goal)
 
         if previous_goal_chunk == new_goal_chunk:
-            self._previous_goal = new_goal
+            self._set_previous_goal(new_goal, inputs)
             return new_goal
 
-        new_goal_strengths, = self.extract_inputs(inputs)
+        new_goal_strengths = inputs[cl.expand_address(self.client, self._goal_source)]
         new_goal_strength = new_goal[new_goal_chunk]
         new_previous_goal_strength = new_goal_strengths[previous_goal_chunk]
-
         strength_difference = abs(new_goal_strength - new_previous_goal_strength)
 
         if strength_difference > self.threshold:
-            self._previous_goal = new_goal
+            self._set_previous_goal(new_goal, inputs)
             return new_goal
 
-        self._previous_goal = nd.NumDict({previous_goal_chunk: new_previous_goal_strength}, default=new_goal.default)
-        return self._previous_goal
+        previous_goal_with_new_strength = nd.NumDict({previous_goal_chunk: new_previous_goal_strength}, default=new_goal.default)
+        self._set_previous_goal(previous_goal_with_new_strength, inputs)
+        return previous_goal_with_new_strength
+
+    def _sample_new_goal(self, inputs: Mapping[Any, nd.NumDict]):
+        goal_inputs = {self._goal_source: inputs[cl.expand_address(self.client, self._goal_source)]}
+        return super(StickyBoltzmannSelector, self).call(goal_inputs)
+
+    def _get_previous_goal(self, inputs: Mapping[Any, nd.NumDict]) -> Optional[nd.NumDict]:
+        battle_tag = self._get_battle_tag(inputs)
+        return self._previous_goals[battle_tag] if battle_tag in self._previous_goals else None
+
+    def _set_previous_goal(self, new_goal: nd.NumDict, inputs: Mapping[Any, nd.NumDict]):
+        battle_tag = self._get_battle_tag(inputs)
+        self._previous_goals[battle_tag] = new_goal
+
+    def _get_battle_tag(self, inputs: Mapping[Any, nd.NumDict]) -> str:
+        battle_perception: nd.NumDict = inputs[cl.expand_address(self.client, self._battle_metadata_source)]
+        battle_metadata: GroupedChunkInstance = get_chunk_from_numdict('metadata', battle_perception)
+        return battle_metadata.get_feature_value('tag')
 
 
 class drive(feature, Enum):

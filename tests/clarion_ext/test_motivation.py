@@ -16,12 +16,16 @@ from battlemaster.clarion_ext.motivation import (
 
 class TestStickyBoltzmannSelector:
     @pytest.fixture
-    def stimulus_source(self) -> cl.Symbol:
-        return cl.buffer('stimulus')
+    def goal_source(self) -> cl.Symbol:
+        return cl.buffer('goals')
 
     @pytest.fixture
-    def process(self, stimulus_source) -> StickyBoltzmannSelector:
-        return StickyBoltzmannSelector(stimulus_source, temperature=0.1, threshold=0.5)
+    def battle_metadata_source(self) -> cl.Symbol:
+        return cl.buffer('battle')
+
+    @pytest.fixture
+    def process(self, goal_source, battle_metadata_source) -> StickyBoltzmannSelector:
+        return StickyBoltzmannSelector(goal_source, battle_metadata_source, temperature=0.1, threshold=0.5)
 
     @pytest.fixture
     def given_selection(self, request, monkeypatch):
@@ -30,20 +34,32 @@ class TestStickyBoltzmannSelector:
         monkeypatch.setattr(cl.BoltzmannSelector, 'call', lambda _self, inputs: nd.NumDict({selection_goal: selection_strength}, default=0.))
 
     @pytest.fixture
-    def given_previous_goal(self, request, process):
+    def battle_tag(self) -> str:
+        return 'genNou-123'
+
+    @pytest.fixture
+    def battle_metadata_input(self, battle_tag: str):
+        return nd.NumDict({GroupedChunkInstance('metadata', BattleConcept.BATTLE, [cl.feature('tag', battle_tag)]): 1.})
+
+    @pytest.fixture
+    def given_previous_goal(self, request, process, battle_tag: str):
         selection_goal = request.param[0]
         selection_strength = request.param[1]
-        process._previous_goal = nd.NumDict({selection_goal: selection_strength}, default=0.)
+        process._previous_goals[battle_tag] = nd.NumDict({selection_goal: selection_strength}, default=0.)
+
+    @pytest.fixture
+    def inputs(self, battle_metadata_source, battle_metadata_input):
+        return {
+            battle_metadata_source: battle_metadata_input
+        }
 
     @pytest.mark.parametrize('given_selection', [(goal('eat'), 3.5)], indirect=True)
     @pytest.mark.parametrize('given_previous_goal', [(goal('sleep'), 5.)], indirect=True)
-    def test_stick_to_previous_goal_if_activation_not_above_threshold(self, process, stimulus_source, given_selection, given_previous_goal):
-        inputs = {
-            stimulus_source: nd.NumDict({
-                goal('eat'): 3.5,
-                goal('sleep'): 4.,
-            })
-        }
+    def test_stick_to_previous_goal_if_activation_not_above_threshold(self, process, inputs, goal_source, given_selection, given_previous_goal):
+        inputs[goal_source] = nd.NumDict({
+            goal('eat'): 3.5,
+            goal('sleep'): 4.,
+        })
         result = process.call(inputs)
 
         assert goal('sleep') in result
@@ -51,13 +67,12 @@ class TestStickyBoltzmannSelector:
 
     @pytest.mark.parametrize('given_selection', [(goal('sleep'), 2.)], indirect=True)
     @pytest.mark.parametrize('given_previous_goal', [(goal('sleep'), 5.)], indirect=True)
-    def test_stick_to_previous_goal_if_new_goal_is_the_same(self, process, stimulus_source, given_selection, given_previous_goal):
-        inputs = {
-            stimulus_source: nd.NumDict({
-                goal('eat'): 5.,
-                goal('sleep'): 2.,
-            })
-        }
+    def test_stick_to_previous_goal_if_new_goal_is_the_same(self, process, inputs, goal_source, given_selection, given_previous_goal):
+        inputs[goal_source] = nd.NumDict({
+            goal('eat'): 5.,
+            goal('sleep'): 2.,
+        })
+
         result = process.call(inputs)
 
         assert goal('sleep') in result
@@ -65,13 +80,12 @@ class TestStickyBoltzmannSelector:
 
     @pytest.mark.parametrize('given_selection', [(goal('eat'), 5.)], indirect=True)
     @pytest.mark.parametrize('given_previous_goal', [(goal('sleep'), 3.)], indirect=True)
-    def test_switch_to_new_goal_if_above_threshold(self, process, stimulus_source, given_selection, given_previous_goal):
-        inputs = {
-            stimulus_source: nd.NumDict({
-                goal('eat'): 5.,
-                goal('sleep'): 3.,
-            })
-        }
+    def test_switch_to_new_goal_if_above_threshold(self, process, inputs, goal_source, given_selection, given_previous_goal):
+        inputs[goal_source] = nd.NumDict({
+            goal('eat'): 5.,
+            goal('sleep'): 3.,
+        })
+
         result = process.call(inputs)
 
         assert goal('eat') in result
