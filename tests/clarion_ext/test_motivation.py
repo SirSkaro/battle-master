@@ -59,23 +59,13 @@ class TestDriveStrength:
 class TestDoDamageDriveEvaluator:
     @pytest.fixture
     def stimulus(self, request) -> GroupedStimulus:
-        is_force_switch = request.param[0]
-        has_active_pokemon = request.param[1]
-        opponent_has_active_pokemon = request.param[2]
+        has_available_moves = request.param
         stimulus = {
-            BattleConcept.BATTLE: nd.NumDict({GroupedChunkInstance('metadata', BattleConcept.BATTLE,[cl.feature('force_switch', is_force_switch)]): 1.
-            }),
-            BattleConcept.ACTIVE_POKEMON: nd.MutableNumDict({}),
-            BattleConcept.OPPONENT_ACTIVE_POKEMON: nd.MutableNumDict({}),
+            BattleConcept.AVAILABLE_MOVES: nd.MutableNumDict()
         }
 
-        if has_active_pokemon:
-            stimulus[BattleConcept.ACTIVE_POKEMON][
-                GroupedChunkInstance('ironbundle', BattleConcept.ACTIVE_POKEMON, [])] = 1.0
-
-        if opponent_has_active_pokemon:
-            stimulus[BattleConcept.OPPONENT_ACTIVE_POKEMON][
-                GroupedChunkInstance('giratina', BattleConcept.OPPONENT_ACTIVE_POKEMON, [])] = 1.0
+        if has_available_moves:
+            stimulus[BattleConcept.AVAILABLE_MOVES][cl.chunk('some_move')] = 1.0
 
         return stimulus
 
@@ -83,23 +73,13 @@ class TestDoDamageDriveEvaluator:
     def evaluator(self):
         return DoDamageDriveEvaluator()
 
-    @pytest.mark.parametrize('stimulus', [(True, True, True)], indirect=True)
-    def test_evaluate_force_switch(self, evaluator: DoDamageDriveEvaluator, stimulus):
-        strength = evaluator.evaluate(stimulus)
-        assert strength == 0.0
-
-    @pytest.mark.parametrize('stimulus', [(False, True, True)], indirect=True)
-    def test_evaluate_not_force_switch(self, evaluator: DoDamageDriveEvaluator, stimulus):
+    @pytest.mark.parametrize('stimulus', [True], indirect=True)
+    def test_evaluate_has_moves(self, evaluator: DoDamageDriveEvaluator, stimulus):
         strength = evaluator.evaluate(stimulus)
         assert strength == 5.0
 
-    @pytest.mark.parametrize('stimulus', [(True, False, True)], indirect=True)
-    def test_evaluate_no_active_pokemon(self, evaluator: DoDamageDriveEvaluator, stimulus):
-        strength = evaluator.evaluate(stimulus)
-        assert strength == 0.0
-
-    @pytest.mark.parametrize('stimulus', [(True, True, False)], indirect=True)
-    def test_evaluate_no_opponent_active_pokemon(self, evaluator: DoDamageDriveEvaluator, stimulus):
+    @pytest.mark.parametrize('stimulus', [False], indirect=True)
+    def test_evaluate_no_moves(self, evaluator: DoDamageDriveEvaluator, stimulus):
         strength = evaluator.evaluate(stimulus)
         assert strength == 0.0
 
@@ -108,21 +88,15 @@ class TestKoOpponentDriveEvaluator:
     @pytest.fixture
     def stimulus(self, request) -> GroupedStimulus:
         hp_percentage = request.param[0]
-        is_force_switch = request.param[1]
-        has_active_pokemon = request.param[2]
-        opponent_has_active_pokemon = request.param[3]
+        has_available_moves = request.param[1]
 
         stimulus = {
-            BattleConcept.BATTLE: nd.NumDict({GroupedChunkInstance('metadata', BattleConcept.BATTLE, [cl.feature('force_switch', is_force_switch)]): 1.}),
-            BattleConcept.ACTIVE_POKEMON: nd.MutableNumDict({}),
-            BattleConcept.OPPONENT_ACTIVE_POKEMON: nd.MutableNumDict({}),
+            BattleConcept.AVAILABLE_MOVES: nd.MutableNumDict({}),
+            BattleConcept.OPPONENT_ACTIVE_POKEMON: nd.MutableNumDict({GroupedChunkInstance('elekid', BattleConcept.OPPONENT_ACTIVE_POKEMON, [cl.feature('hp_percentage', hp_percentage)]): 1.}),
         }
 
-        if has_active_pokemon:
-            stimulus[BattleConcept.ACTIVE_POKEMON][GroupedChunkInstance('snivy', BattleConcept.ACTIVE_POKEMON, [])] = 1.0
-
-        if opponent_has_active_pokemon:
-            stimulus[BattleConcept.OPPONENT_ACTIVE_POKEMON][GroupedChunkInstance('elekid', BattleConcept.OPPONENT_ACTIVE_POKEMON, [cl.feature('hp_percentage', hp_percentage)])] = 1.0
+        if has_available_moves:
+            stimulus[BattleConcept.AVAILABLE_MOVES][cl.chunk('some_move')] = 1.0
 
         return stimulus
 
@@ -130,28 +104,18 @@ class TestKoOpponentDriveEvaluator:
     def evaluator(self):
         return KoOpponentDriveEvaluator()
 
-    @pytest.mark.parametrize('stimulus', [(100, False, True, True)], indirect=True)
+    @pytest.mark.parametrize('stimulus', [(100, True)], indirect=True)
     def test_evaluate_full_health(self, evaluator: KoOpponentDriveEvaluator, stimulus):
         strength = evaluator.evaluate(stimulus)
         assert strength == 0.05
 
-    @pytest.mark.parametrize('stimulus', [(1, False, True, True)], indirect=True)
+    @pytest.mark.parametrize('stimulus', [(1, True)], indirect=True)
     def test_evaluate_almost_no_health(self, evaluator: KoOpponentDriveEvaluator, stimulus):
         strength = evaluator.evaluate(stimulus)
         assert strength == 5.0
 
-    @pytest.mark.parametrize('stimulus', [(100, True, True, True)], indirect=True)
+    @pytest.mark.parametrize('stimulus', [(100, False)], indirect=True)
     def test_forced_switch(self, evaluator: KoOpponentDriveEvaluator, stimulus):
-        strength = evaluator.evaluate(stimulus)
-        assert strength == 0.
-
-    @pytest.mark.parametrize('stimulus', [(100, False, False, True)], indirect=True)
-    def test_no_active_pokemon(self, evaluator: KoOpponentDriveEvaluator, stimulus):
-        strength = evaluator.evaluate(stimulus)
-        assert strength == 0.
-
-    @pytest.mark.parametrize('stimulus', [(100, False, True, False)], indirect=True)
-    def test_no_opponent_active_pokemon(self, evaluator: KoOpponentDriveEvaluator, stimulus):
         strength = evaluator.evaluate(stimulus)
         assert strength == 0.
 

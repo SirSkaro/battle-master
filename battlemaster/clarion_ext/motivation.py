@@ -161,27 +161,22 @@ class GaussianTargetEvaluator(DriveEvaluator):
 
 class InflictDamageAware:
     def can_do_damage(self, stimulus: GroupedStimulus) -> bool:
-        battle_metadata = typing.cast(GroupedChunkInstance, get_chunk_from_numdict('metadata', stimulus[BattleConcept.BATTLE]))
-        active_pokemon = stimulus[BattleConcept.ACTIVE_POKEMON]
-        opponent_active_pokemon = stimulus[BattleConcept.OPPONENT_ACTIVE_POKEMON]
+        return not is_empty(stimulus[BattleConcept.AVAILABLE_MOVES])
 
-        is_force_switch_turn = battle_metadata.get_feature_value('force_switch')
-        has_active_pokemon = not is_empty(active_pokemon)
-        opponent_has_active_pokemon = not is_empty(opponent_active_pokemon)
-        return has_active_pokemon and opponent_has_active_pokemon and not is_force_switch_turn
+
+class SwitchOutAware:
+    def can_switch(self, stimulus: GroupedStimulus) -> bool:
+        return not is_empty(stimulus[BattleConcept.AVAILABLE_SWITCHES])
 
 
 class DoDamageDriveEvaluator(DriveEvaluator, InflictDamageAware):
     def evaluate(self, stimulus: GroupedStimulus) -> float:
-        can_do_damage = self.can_do_damage(stimulus)
-
-        return 5.0 if can_do_damage else 0.
+        return 5.0 if self.can_do_damage(stimulus) else 0.
 
 
 class KoOpponentDriveEvaluator(DriveEvaluator, InflictDamageAware):
     def evaluate(self, stimulus: GroupedStimulus) -> float:
-        can_do_damage = self.can_do_damage(stimulus)
-        if not can_do_damage:
+        if not self.can_do_damage(stimulus):
             return 0.
 
         opponent_active_pokemon_perception = stimulus[BattleConcept.OPPONENT_ACTIVE_POKEMON]
