@@ -7,10 +7,75 @@ import pytest
 from battlemaster.adapters.clarion_adapter import BattleConcept
 from battlemaster.clarion_ext.attention import GroupedChunk, GroupedChunkInstance
 from battlemaster.clarion_ext.motivation import (
+    goal, StickyBoltzmannSelector,
     drive, DoDamageDriveEvaluator, KoOpponentDriveEvaluator, DriveStrength, GroupedStimulus,
     KeepPokemonAliveEvaluator, KeepHealthyEvaluator, ConstantDriveEvaluator,
     KeepTypeAdvantageDriveEvaluator, RevealHiddenInformationDriveEvaluator
 )
+
+
+class TestStickyBoltzmannSelector:
+    @pytest.fixture
+    def stimulus_source(self) -> cl.Symbol:
+        return cl.buffer('stimulus')
+
+    @pytest.fixture
+    def process(self, stimulus_source) -> StickyBoltzmannSelector:
+        return StickyBoltzmannSelector(stimulus_source, temperature=0.1, threshold=0.5)
+
+    @pytest.fixture
+    def given_selection(self, request, monkeypatch):
+        selection_goal = request.param[0]
+        selection_strength = request.param[1]
+        monkeypatch.setattr(cl.BoltzmannSelector, 'call', lambda _self, inputs: nd.NumDict({selection_goal: selection_strength}, default=0.))
+
+    @pytest.fixture
+    def given_previous_goal(self, request, process):
+        selection_goal = request.param[0]
+        selection_strength = request.param[1]
+        process._previous_goal = nd.NumDict({selection_goal: selection_strength}, default=0.)
+
+    @pytest.mark.parametrize('given_selection', [(goal('eat'), 3.5)], indirect=True)
+    @pytest.mark.parametrize('given_previous_goal', [(goal('sleep'), 5.)], indirect=True)
+    def test_stick_to_previous_goal_if_activation_not_above_threshold(self, process, stimulus_source, given_selection, given_previous_goal):
+        inputs = {
+            stimulus_source: nd.NumDict({
+                goal('eat'): 3.5,
+                goal('sleep'): 4.,
+            })
+        }
+        result = process.call(inputs)
+
+        assert goal('sleep') in result
+        assert not goal('eat') in result
+
+    @pytest.mark.parametrize('given_selection', [(goal('sleep'), 2.)], indirect=True)
+    @pytest.mark.parametrize('given_previous_goal', [(goal('sleep'), 5.)], indirect=True)
+    def test_stick_to_previous_goal_if_new_goal_is_the_same(self, process, stimulus_source, given_selection, given_previous_goal):
+        inputs = {
+            stimulus_source: nd.NumDict({
+                goal('eat'): 5.,
+                goal('sleep'): 2.,
+            })
+        }
+        result = process.call(inputs)
+
+        assert goal('sleep') in result
+        assert not goal('eat') in result
+
+    @pytest.mark.parametrize('given_selection', [(goal('eat'), 5.)], indirect=True)
+    @pytest.mark.parametrize('given_previous_goal', [(goal('sleep'), 3.)], indirect=True)
+    def test_switch_to_new_goal_if_above_threshold(self, process, stimulus_source, given_selection, given_previous_goal):
+        inputs = {
+            stimulus_source: nd.NumDict({
+                goal('eat'): 5.,
+                goal('sleep'): 3.,
+            })
+        }
+        result = process.call(inputs)
+
+        assert goal('eat') in result
+        assert not goal('sleep') in result
 
 
 class TestDriveStrength:

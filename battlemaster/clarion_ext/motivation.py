@@ -80,6 +80,41 @@ class GoalGateAdapter(cl.Process):
         return logging.getLogger(self.__class__.__name__)
 
 
+class StickyBoltzmannSelector(cl.BoltzmannSelector):
+
+    def __init__(self, source, temperature, threshold):
+        super(StickyBoltzmannSelector, self).__init__(source, temperature, 0.)
+        self._previous_goal: nd.NumDict = None
+        self.threshold = threshold
+
+    def call(self, inputs: Mapping[Any, nd.NumDict]) -> nd.NumDict:
+        new_goal = super(StickyBoltzmannSelector, self).call(inputs)
+
+        if self._previous_goal is None:
+            self._previous_goal = new_goal
+            return new_goal
+
+        previous_goal_chunk = get_only_value_from_numdict(self._previous_goal)
+        new_goal_chunk = get_only_value_from_numdict(new_goal)
+
+        if previous_goal_chunk == new_goal_chunk:
+            self._previous_goal = new_goal
+            return new_goal
+
+        new_goal_strengths, = self.extract_inputs(inputs)
+        new_goal_strength = new_goal[new_goal_chunk]
+        new_previous_goal_strength = new_goal_strengths[previous_goal_chunk]
+
+        strength_difference = abs(new_goal_strength - new_previous_goal_strength)
+
+        if strength_difference > self.threshold:
+            self._previous_goal = new_goal
+            return new_goal
+
+        self._previous_goal = nd.NumDict({previous_goal_chunk: new_previous_goal_strength}, default=new_goal.default)
+        return self._previous_goal
+
+
 class drive(feature, Enum):
     KEEP_POKEMON_ALIVE = 'keep_pokemon_alive'
     HAVE_MORE_POKEMON_THAN_OPPONENT = 'have_more_pokemon_than_opponent'
