@@ -3,6 +3,7 @@ import re
 
 import pyClarion as cl
 from pyClarion import chunk, feature, buffer, subsystem, chunks
+from pyClarion import nd
 from poke_env import gen_data
 
 from .clarion_ext.attention import NamedStimuli, AttentionFilter
@@ -202,7 +203,7 @@ def create_agent() -> Tuple[cl.Structure, cl.Construct]:
             cl.Construct(name=cl.chunks('goals'), process=cl.MaxNodes(sources=[cl.flow_bt('goal_activations')]))
             cl.Construct(name=cl.terminus('drives_out'), process=cl.ThresholdSelector(source=cl.features("drive_strengths"), threshold=0.001))
             cl.Construct(name=cl.terminus('goals_out'), process=cl.ThresholdSelector(source=chunks("goals"), threshold=0.001))
-            cl.Construct(name=cl.terminus('wm_write'), process=cl.Constants(cl.nd.NumDict({
+            cl.Construct(name=cl.terminus('wm_write'), process=cl.Constants(nd.NumDict({
                 feature(('wm', ('w', 0)), MsWmSource.GOAL_ACTIVATIONS.value): 1.0,
                 feature(("wm", ("r", 0)), "read"): 1.0,
                 feature(('wm', ('w', 1)), MsWmSource.DRIVE_ACTIVATIONS.value): 1.0,
@@ -214,17 +215,17 @@ def create_agent() -> Tuple[cl.Structure, cl.Construct]:
             cl.Construct(name=cl.chunks('goals_in'), process=cl.MaxNodes(sources=[buffer("wm_ms_out")]))
             cl.Construct(name=cl.terminus('goal_out'), process=cl.BoltzmannSelector(source=cl.chunks('goals_in'), temperature=0.05, threshold=0.))
 
-            cl.Construct(name=cl.terminus('wm_write'), process=cl.Constants(cl.nd.NumDict({feature(('wm', ('w', 0)), McsWmSource.GOAL.value): 1.0, feature(("wm", ("r", 0)), "read"): 1.0}, default=0.0)))
+            cl.Construct(name=cl.terminus('wm_write'), process=cl.Constants(nd.NumDict({feature(('wm', ('w', 0)), McsWmSource.GOAL.value): 1.0, feature(("wm", ("r", 0)), "read"): 1.0}, default=0.0)))
 
             cl.Construct(name=cl.features('goal_gate_content'), process=GoalGateAdapter(goal_source=cl.terminus('goal_out')))
-            cl.Construct(name=cl.features('goal_gate_write'), process=cl.Constants(cl.nd.NumDict({cl.feature(('goal', 'w'), 'clrupd'): 1.0}, default=0.0)))
+            cl.Construct(name=cl.features('goal_gate_write'), process=cl.Constants(nd.NumDict({cl.feature(('goal', 'w'), 'clrupd'): 1.0}, default=0.0)))
             cl.Construct(name=cl.features('goal_gate_main'), process=cl.MaxNodes(sources=[cl.features('goal_gate_content'), cl.features('goal_gate_write')]))
             cl.Construct(name=cl.terminus('goal_gate_control'), process=cl.ActionSelector(source=cl.features('goal_gate_main'), interface=GOAL_GATE_INTERFACE, temperature=0.01))
 
             cl.Construct(name=cl.chunks("self_team_in"), process=AttentionFilter(base=cl.MaxNodes(sources=[buffer("stimulus")]), attend_to=[BattleConcept.TEAM, BattleConcept.ACTIVE_POKEMON]))
             cl.Construct(name=cl.chunks("opponent_team_in"), process=AttentionFilter(base=cl.MaxNodes(sources=[buffer("stimulus")]), attend_to=[BattleConcept.OPPONENT_TEAM, BattleConcept.OPPONENT_ACTIVE_POKEMON]))
             cl.Construct(name=cl.features('effort'), process=DecideEffort(team_source=cl.chunks('self_team_in'), opponent_team_source=cl.chunks('opponent_team_in')))
-            cl.Construct(name=cl.features('effort_gate_write'), process=cl.Constants(cl.nd.NumDict({cl.feature(('effort', 'w'), 'clrupd'): 1.0}, default=0.0)))
+            cl.Construct(name=cl.features('effort_gate_write'), process=cl.Constants(nd.NumDict({cl.feature(('effort', 'w'), 'clrupd'): 1.0}, default=0.0)))
             cl.Construct(name=cl.features('effort_main'), process=cl.MaxNodes(sources=[cl.features('effort'), cl.features('effort_gate_write')]))
             cl.Construct(name=cl.terminus('effort_gate_control'), process=cl.ActionSelector(source=cl.features('effort_main'), interface=EFFORT_INTERFACE, temperature=0.01))
 
@@ -256,7 +257,7 @@ def create_agent() -> Tuple[cl.Structure, cl.Construct]:
 
             cl.Construct(name=cl.chunks("out"), process=cl.MaxNodes(sources=[cl.flow_tt("effective_available_moves"), cl.flow_tt("effective_available_switches"), cl.chunks("generate_and_test")]))
             cl.Construct(name=cl.terminus("main"), process=cl.ThresholdSelector(source=chunks("out"), threshold=0.001))
-            cl.Construct(name=cl.terminus('wm_write'), process=cl.Constants(cl.nd.NumDict({feature(('wm', ('w', 0)), NacsWmSource.CANDIDATE_ACTIONS.value): 1.0, feature(("wm", ("r", 0)), "read"): 1.0}, default=0.0)))
+            cl.Construct(name=cl.terminus('wm_write'), process=cl.Constants(nd.NumDict({feature(('wm', ('w', 0)), NacsWmSource.CANDIDATE_ACTIONS.value): 1.0, feature(("wm", ("r", 0)), "read"): 1.0}, default=0.0)))
 
         with acs:
             cl.Construct(name=cl.chunks('wm_in'), process=cl.MaxNodes(sources=[buffer("wm_nacs_out")]))
