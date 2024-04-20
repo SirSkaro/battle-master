@@ -187,10 +187,10 @@ class KoOpponentDriveEvaluator(DriveEvaluator, InflictDamageAware):
 
 class KeepPokemonAliveEvaluator(DriveEvaluator, SwitchOutAware):
     def evaluate(self, stimulus: GroupedStimulus) -> float:
-        if not self.can_switch(stimulus):
+        active_pokemon_perception = stimulus[BattleConcept.ACTIVE_POKEMON]
+        if is_empty(active_pokemon_perception) or not self.can_switch(stimulus):
             return 0.
 
-        active_pokemon_perception = stimulus[BattleConcept.ACTIVE_POKEMON]
         active_pokemon = typing.cast(GroupedChunkInstance, get_only_value_from_numdict(active_pokemon_perception))
         hp = active_pokemon.get_feature_value('hp')
         max_hp = active_pokemon.get_feature_value('max_hp')
