@@ -87,7 +87,7 @@ class StickyBoltzmannSelector(cl.Process):
     """
     _serves = cl.ConstructType.terminus
 
-    def __init__(self, goal_source, battle_metadata_source, temperature, threshold):
+    def __init__(self, goal_source: cl.Symbol, battle_metadata_source: cl.Symbol, temperature: float, threshold: float):
         super().__init__(expected=[goal_source, battle_metadata_source])
         self._goal_source = goal_source
         self._battle_metadata_source = battle_metadata_source

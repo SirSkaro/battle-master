@@ -4,6 +4,8 @@ import pyClarion as cl
 from pyClarion import nd
 from pyClarion.base.realizers import Pt
 
+from battlemaster.clarion_ext.numdicts_ext import is_empty
+
 
 class ReasoningPath(cl.Wrapped[Pt]):
     """
@@ -49,3 +51,32 @@ class ReasoningPath(cl.Wrapped[Pt]):
             if not interface.params[pidx] in data:
                 return True
         return False
+
+
+class SwitchIfEmpty(cl.Process):
+    """
+    If the the inputs from the primary sources are empty, returns the inputs from the alternative sources.
+    """
+    _serves = cl.ConstructType.flow_tt
+
+    def __init__(self, primary_sources: List[cl.Symbol], alternative_sources: List[cl.Symbol]):
+        super().__init__(expected=[*primary_sources, *alternative_sources])
+        self._primary_sources = primary_sources
+        self._alternative_sources = alternative_sources
+
+    def call(self, inputs: Mapping[Any, nd.NumDict]) -> nd.NumDict:
+        primary_inputs = self._get_input_from_sources(inputs, self._primary_sources)
+        if not is_empty(primary_inputs):
+            return primary_inputs
+
+        return self._get_input_from_sources(inputs, self._alternative_sources)
+
+    def _get_input_from_sources(self, inputs: Mapping[Any, nd.NumDict], sources: List[cl.Symbol]) -> nd.NumDict:
+        result = nd.MutableNumDict({}, default=0.)
+        for source in sources:
+            expanded_address = cl.expand_address(self.client, source)
+            source_input = inputs[expanded_address]
+            result.update(source_input)
+        return result
+
+

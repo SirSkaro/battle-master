@@ -192,7 +192,7 @@ def create_agent() -> Tuple[cl.Structure, cl.Construct]:
             name=buffer("wm_nacs_out"),
             process=cl.RegisterArray(
                 controller=(subsystem("nacs"), cl.terminus("wm_write")),
-                sources=((subsystem("nacs"), cl.terminus("main")),),
+                sources=((subsystem("nacs"), cl.terminus("wm_out")),),
                 interface=NACS_OUT_WM_INTERFACE)
         )
 
@@ -237,15 +237,18 @@ def create_agent() -> Tuple[cl.Structure, cl.Construct]:
             cl.Construct(name=cl.chunks("opponent_type_in"), process=AttentionFilter(base=cl.MaxNodes(sources=[buffer("stimulus")]), attend_to=[BattleConcept.ACTIVE_OPPONENT_TYPE]))
             cl.Construct(name=cl.chunks("available_moves_in"), process=AttentionFilter(base=cl.MaxNodes(sources=[buffer("stimulus")]), attend_to=[BattleConcept.AVAILABLE_MOVES]))
             cl.Construct(name=cl.chunks("available_switches_in"), process=AttentionFilter(base=cl.MaxNodes(sources=[buffer("stimulus")]), attend_to=[BattleConcept.AVAILABLE_SWITCHES]))
-            cl.Construct(name=cl.flow_tt("effective_available_moves"),
+            cl.Construct(name=cl.flow_tt("available_switches_in"), process=EffectiveMoves(type_source=cl.chunks("opponent_type_in"), move_source=cl.chunks("available_moves_in"), move_chunks=nacs.assets.move_chunks))
+            cl.Construct(name=cl.flow_tt("effective_available_switches"), process=EffectiveSwitches(type_source=cl.chunks("opponent_type_in"), switch_source=cl.chunks("available_switches_in"), pokemon_chunks=nacs.assets.pokemon_chunks))
+
+            cl.Construct(name=cl.flow_tt("moves_that_forward_goal"),
                          process=ReasoningPath(
-                             base=EffectiveMoves(type_source=cl.chunks("opponent_type_in"), move_source=cl.chunks("available_moves_in"), move_chunks=nacs.assets.move_chunks),
+                             base=cl.Repeater(source=cl.flow_tt("available_switches_in")),
                              controllers=[cl.buffer("mcs_effort_gate"), cl.buffer('mcs_goal_gate')],
                              interfaces=[EFFORT_INTERFACE, GOAL_GATE_INTERFACE],
                              pidxs=[Effort.AUTOPILOT.index, GoalType.MOVE.index]))
-            cl.Construct(name=cl.flow_tt("effective_available_switches"),
+            cl.Construct(name=cl.flow_tt("switches_that_forward_goal"),
                          process=ReasoningPath(
-                             base=EffectiveSwitches(type_source=cl.chunks("opponent_type_in"), switch_source=cl.chunks("available_switches_in"), pokemon_chunks=nacs.assets.pokemon_chunks),
+                             base=cl.Repeater(source=cl.flow_tt("effective_available_switches")),
                              controllers=[cl.buffer("mcs_effort_gate"), cl.buffer('mcs_goal_gate')],
                              interfaces=[EFFORT_INTERFACE, GOAL_GATE_INTERFACE],
                              pidxs=[Effort.AUTOPILOT.index, GoalType.SWITCH.index]))
@@ -257,8 +260,9 @@ def create_agent() -> Tuple[cl.Structure, cl.Construct]:
                              interfaces=[EFFORT_INTERFACE],
                              pidxs=[Effort.TRY_HARD.index]))
 
-            cl.Construct(name=cl.chunks("out"), process=cl.MaxNodes(sources=[cl.flow_tt("effective_available_moves"), cl.flow_tt("effective_available_switches"), cl.chunks("generate_and_test")]))
-            cl.Construct(name=cl.terminus("main"), process=cl.ThresholdSelector(source=chunks("out"), threshold=0.001))
+            cl.Construct(name=cl.chunks("goal_achieving_actions_out"), process=cl.MaxNodes(sources=[cl.flow_tt("moves_that_forward_goal"), cl.flow_tt("switches_that_forward_goal"), cl.chunks("generate_and_test")]))
+
+            cl.Construct(name=cl.terminus("wm_out"), process=cl.ThresholdSelector(source=chunks("goal_achieving_actions_out"), threshold=0.001))
             cl.Construct(name=cl.terminus('wm_write'), process=cl.Constants(nd.NumDict({feature(('wm', ('w', 0)), NacsWmSource.CANDIDATE_ACTIONS.value): 1.0, feature(("wm", ("r", 0)), "read"): 1.0}, default=0.0)))
 
         with acs:
