@@ -215,7 +215,7 @@ def create_agent() -> Tuple[cl.Structure, cl.Construct]:
             cl.Construct(name=cl.chunks('battle_metadata_in'), process=AttentionFilter(base=cl.MaxNodes(sources=[buffer("stimulus")]), attend_to=[BattleConcept.BATTLE]))
             cl.Construct(name=cl.features('drives_in'), process=cl.MaxNodes(sources=[buffer("wm_ms_out")]))
             cl.Construct(name=cl.chunks('goals_in'), process=cl.MaxNodes(sources=[buffer("wm_ms_out")]))
-            #cl.Construct(name=cl.terminus('goal_out'), process=StickyBoltzmannSelector(goal_source=cl.chunks('goals_in'), battle_metadata_source=cl.chunks('battle_metadata_in'), temperature=0.05, threshold=1.0))
+            #cl.Construct(name=cl.terminus('goal_out'), process=StickyBoltzmannSelector(goal_source=cl.chunks('goals_in'), battle_metadata_source=cl.chunks('battle_metadata_in'), temperature=0.05, threshold=0.5))
             cl.Construct(name=cl.terminus('goal_out'), process=cl.BoltzmannSelector(source=cl.chunks('goals_in'), temperature=0.05, threshold=0.01))
 
             cl.Construct(name=cl.terminus('wm_write'), process=cl.Constants(nd.NumDict({feature(('wm', ('w', 0)), McsWmSource.GOAL.value): 1.0, feature(("wm", ("r", 0)), "read"): 1.0}, default=0.0)))

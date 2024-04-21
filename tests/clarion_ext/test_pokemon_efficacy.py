@@ -2,7 +2,7 @@ import pytest
 import pyClarion as cl
 from pyClarion import nd
 
-from battlemaster.clarion_ext.pokemon_efficacy import EffectiveMoves, EffectiveSwitches
+from battlemaster.clarion_ext.pokemon_efficacy import EffectiveMoves, EffectiveSwitches, DefensiveSwitches
 from battlemaster.clarion_ext.attention import GroupedChunk
 
 
@@ -119,3 +119,62 @@ class TestEffectiveSwitches:
         assert result[cl.chunk('caterpie')] == 1.0 / 3
         assert result[cl.chunk('mankey')] == 0.5 / 3
         assert result[cl.chunk('registeel')] == 0.25 / 3
+
+
+class TestDefensiveSwitches:
+    @pytest.fixture
+    def pokemon_chunks(self) -> cl.Chunks:
+        chunks = cl.Chunks()
+        data = [('caterpie', ('bug',)), ('pidgey', ('normal', 'flying')), ('mankey', ('fighting',)),
+                ('bisharp', ('dark', 'steel')), ('blastoise', ('water',)), ('registeel', ('steel',)),
+                ('tropius', ('flying', 'grass'))]
+
+        for name, types in data:
+            chunks.define(cl.chunk(name),
+                          *[cl.feature('type', type) for type in types])
+
+        return chunks
+
+    @pytest.fixture
+    def process(self, pokemon_chunks) -> DefensiveSwitches:
+        type_source = cl.buffer('opponent_type')
+        switch_source = cl.buffer('available_switches')
+        return DefensiveSwitches(type_source, switch_source, pokemon_chunks)
+
+    @pytest.mark.parametrize("opponent_type, expected_switches", [
+        (("psychic",), ['registeel', 'bisharp']),
+        (("bug", "water"), ['blastoise', 'registeel', 'pidgey', 'mankey'])
+    ])
+    def test_only_keeps_defensive_switches(self, process: DefensiveSwitches, opponent_type, expected_switches):
+        inputs = {
+            cl.buffer('opponent_type'): {cl.chunk(type): 1. for type in opponent_type},
+            cl.buffer('available_switches'): nd.NumDict({
+                GroupedChunk('caterpie', 'switches'): 1.,
+                GroupedChunk('pidgey', 'switches'): 1.,
+                GroupedChunk('blastoise', 'switches'): 1.,
+                GroupedChunk('mankey', 'switches'): 1.,
+                GroupedChunk('bisharp', 'switches'): 1.,
+                GroupedChunk('registeel', 'switches'): 1.,},
+                default=0.)
+        }
+        result = process.call(inputs)
+
+        assert len(result) == len(expected_switches)
+        for super_effective_move_chunk in result.keys():
+            assert super_effective_move_chunk.cid in expected_switches
+
+    def test_normalizes_switch_weights(self, process: EffectiveSwitches):
+        inputs = {
+            cl.buffer('opponent_type'): {cl.chunk(type): 1. for type in ('grass', 'psychic')},
+            cl.buffer('available_switches'): nd.NumDict(
+                {GroupedChunk('pidgey', 'switches'): 1.,
+                 GroupedChunk('tropius', 'switches'): 1.,
+                 GroupedChunk('bisharp', 'switches'): 1.},
+                default=0.)
+        }
+
+        result = process.call(inputs)
+
+        assert result[cl.chunk('tropius')] == 1.0 / 3
+        assert result[cl.chunk('bisharp')] == 1.0 / 3
+        assert result[cl.chunk('pidgey')] == 0.5 / 3
