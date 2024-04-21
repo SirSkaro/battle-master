@@ -80,14 +80,19 @@ class GoalGateAdapter(cl.Process):
         return logging.getLogger(self.__class__.__name__)
 
 
-class StickyBoltzmannSelector(cl.BoltzmannSelector):
+class StickyBoltzmannSelector(cl.Process):
+    """
+    An extension of pyClarion's BoltzmannSelector that requires strengths to be above a threshold of the previously
+    sampled emission's current strength.
+    """
+    _serves = cl.ConstructType.terminus
 
     def __init__(self, goal_source, battle_metadata_source, temperature, threshold):
-        super(StickyBoltzmannSelector, self).__init__(goal_source, temperature, 0.)
-        super(cl.BoltzmannSelector, self).__init__([goal_source, battle_metadata_source])
+        super().__init__(expected=[goal_source, battle_metadata_source])
         self._goal_source = goal_source
         self._battle_metadata_source = battle_metadata_source
-        self.threshold = threshold
+        self._temperature = temperature
+        self._threshold = threshold
         self._previous_goals = {}
 
     def call(self, inputs: Mapping[Any, nd.NumDict]) -> nd.NumDict:
@@ -110,7 +115,7 @@ class StickyBoltzmannSelector(cl.BoltzmannSelector):
         new_previous_goal_strength = new_goal_strengths[previous_goal_chunk]
         strength_difference = abs(new_goal_strength - new_previous_goal_strength)
 
-        if strength_difference > self.threshold:
+        if strength_difference > self._threshold:
             self._set_previous_goal(new_goal, inputs)
             return new_goal
 
@@ -119,8 +124,8 @@ class StickyBoltzmannSelector(cl.BoltzmannSelector):
         return previous_goal_with_new_strength
 
     def _sample_new_goal(self, inputs: Mapping[Any, nd.NumDict]):
-        goal_inputs = {self._goal_source: inputs[cl.expand_address(self.client, self._goal_source)]}
-        return super(StickyBoltzmannSelector, self).call(goal_inputs)
+        expanded_address = cl.expand_address(self.client, self._goal_source)
+        return nd.boltzmann(inputs[expanded_address], self._temperature)
 
     def _get_previous_goal(self, inputs: Mapping[Any, nd.NumDict]) -> Optional[nd.NumDict]:
         battle_tag = self._get_battle_tag(inputs)

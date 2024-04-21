@@ -74,7 +74,8 @@ def test_pokemon_chunks_have_expected_features(expected_chunks: Tuple[str, List[
 def test_nacs_writes_effective_moves_to_working_memory(active_opponent_type: List[str], available_moves: List[str],
                                                   acceptable_moves: List[str], agent: cl.Structure, stimulus: cl.Construct,
                                                   nacs_working_memory: cl.Construct, given_effort, given_drives):
-    perception = GroupedStimulusInput([BattleConcept.ACTIVE_OPPONENT_TYPE, BattleConcept.AVAILABLE_MOVES])
+    perception = GroupedStimulusInput([BattleConcept.BATTLE, BattleConcept.ACTIVE_OPPONENT_TYPE, BattleConcept.AVAILABLE_MOVES])
+    perception.add_chunk_instance_to_group(cl.chunk('metadata'), BattleConcept.BATTLE, [cl.feature('tag', 'gen4nu-987')])
     for defending_type in active_opponent_type:
         perception.add_chunk_to_group(cl.chunk(defending_type), BattleConcept.ACTIVE_OPPONENT_TYPE)
     for name in available_moves:
@@ -98,7 +99,8 @@ def test_nacs_writes_effective_moves_to_working_memory(active_opponent_type: Lis
 def test_acs_chooses_effective_move_from_available_moves(active_opponent_type: List[str], available_moves: List[str],
                                                          acceptable_moves: List[str], agent: cl.Structure, stimulus: cl.Construct,
                                                          acs_terminus: cl.Construct, given_effort, given_drives):
-    perception = GroupedStimulusInput([BattleConcept.ACTIVE_OPPONENT_TYPE, BattleConcept.AVAILABLE_MOVES])
+    perception = GroupedStimulusInput([BattleConcept.BATTLE, BattleConcept.ACTIVE_OPPONENT_TYPE, BattleConcept.AVAILABLE_MOVES])
+    perception.add_chunk_instance_to_group(cl.chunk('metadata'), BattleConcept.BATTLE, [cl.feature('tag', 'gen4nu-987')])
     for defending_type in active_opponent_type:
         perception.add_chunk_to_group(cl.chunk(defending_type), BattleConcept.ACTIVE_OPPONENT_TYPE)
     for name in available_moves:
@@ -122,7 +124,8 @@ def test_mcs_outputs_effort(team: List[str], opponent_team: List[Tuple[str, bool
                             stimulus: cl.Construct, mcs_effort_gate: cl.Construct, monkeypatch: MonkeyPatch, given_drives):
     monkeypatch.setattr(MentalSimulation, 'call', lambda _self, inputs: nd.NumDict(default=0.))
 
-    perception = GroupedStimulusInput([BattleConcept.TEAM, BattleConcept.OPPONENT_TEAM])
+    perception = GroupedStimulusInput([BattleConcept.BATTLE, BattleConcept.TEAM, BattleConcept.OPPONENT_TEAM])
+    perception.add_chunk_instance_to_group(cl.chunk('metadata'), BattleConcept.BATTLE, [cl.feature('tag', 'gen4nu-987')])
     for pokemon in team:
         perception.add_chunk_instance_to_group(cl.chunk(pokemon[0]), BattleConcept.TEAM, [cl.feature('fainted', pokemon[1])])
     for pokemon in opponent_team:
@@ -138,7 +141,8 @@ def test_mcs_outputs_effort(team: List[str], opponent_team: List[Tuple[str, bool
 @pytest.mark.parametrize('given_effort', [Effort.AUTOPILOT], indirect=True)
 @pytest.mark.parametrize('given_drives', [nd.NumDict({drive.DO_DAMAGE: 5.}, default=0.)], indirect=True)
 def test_ns_writes_drives_to_working_memory(agent: cl.Structure, stimulus: cl.Construct, ms_working_memory: cl.Construct, given_effort, given_drives):
-    perception = GroupedStimulusInput([])
+    perception = GroupedStimulusInput([BattleConcept.BATTLE])
+    perception.add_chunk_instance_to_group(cl.chunk('metadata'), BattleConcept.BATTLE, [cl.feature('tag', 'gen4nu-987')])
     stimulus.process.input(perception)
     agent.step()
 
@@ -151,7 +155,8 @@ def test_ns_writes_drives_to_working_memory(agent: cl.Structure, stimulus: cl.Co
 @pytest.mark.parametrize('given_effort', [Effort.AUTOPILOT], indirect=True)
 @pytest.mark.parametrize('given_drives', [nd.NumDict({drive.DO_DAMAGE: 5., drive.KO_OPPONENT: 5.}, default=0.)], indirect=True)
 def test_ns_writes_activated_goals_to_working_memory(agent: cl.Structure, stimulus: cl.Construct, ms_working_memory: cl.Construct, given_effort, given_drives):
-    perception = GroupedStimulusInput([])
+    perception = GroupedStimulusInput([BattleConcept.BATTLE])
+    perception.add_chunk_instance_to_group(cl.chunk('metadata'), BattleConcept.BATTLE, [cl.feature('tag', 'gen4nu-987')])
     stimulus.process.input(perception)
     agent.step()
 
@@ -164,7 +169,8 @@ def test_ns_writes_activated_goals_to_working_memory(agent: cl.Structure, stimul
 @pytest.mark.parametrize('given_effort', [Effort.AUTOPILOT], indirect=True)
 @pytest.mark.parametrize('given_drives', [nd.NumDict({drive.DO_DAMAGE: 5.}, default=0.)], indirect=True)
 def test_mcs_writes_selected_goal_to_working_memory(agent: cl.Structure, stimulus: cl.Construct, mcs_working_memory: cl.Construct, given_effort, given_drives):
-    perception = GroupedStimulusInput([])
+    perception = GroupedStimulusInput([BattleConcept.BATTLE])
+    perception.add_chunk_instance_to_group(cl.chunk('metadata'), BattleConcept.BATTLE, [cl.feature('tag', 'gen4nu-987')])
     stimulus.process.input(perception)
     agent.step()
 
@@ -178,7 +184,8 @@ def test_mcs_writes_selected_goal_to_working_memory(agent: cl.Structure, stimulu
 @pytest.mark.parametrize('given_effort', [Effort.AUTOPILOT], indirect=True)
 @pytest.mark.parametrize('given_drives', [nd.NumDict({drive.KEEP_HEALTHY: 5.}, default=0.)], indirect=True)
 def test_mcs_writes_to_goal_gate(agent: cl.Structure, stimulus: cl.Construct, mcs_goal_gate: cl.Construct, given_effort, given_drives):
-    perception = GroupedStimulusInput([])
+    perception = GroupedStimulusInput([BattleConcept.BATTLE])
+    perception.add_chunk_instance_to_group(cl.chunk('metadata'), BattleConcept.BATTLE, [cl.feature('tag', 'gen4nu-987')])
     stimulus.process.input(perception)
     agent.step()
 

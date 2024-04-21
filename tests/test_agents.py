@@ -97,8 +97,9 @@ class TestBattleMasterPlayerComponentTests:
 
     @staticmethod
     def _given_perception(perception_factory, moves: List[Move], opponent: Pokemon):
-        perception = GroupedStimulusInput([BattleConcept.AVAILABLE_MOVES.value, BattleConcept.ACTIVE_OPPONENT_TYPE.value])
-        perception.add_chunks_to_group([cl.chunk(move.id) for move in moves], BattleConcept.AVAILABLE_MOVES.value)
+        perception = GroupedStimulusInput([BattleConcept.BATTLE, BattleConcept.AVAILABLE_MOVES, BattleConcept.ACTIVE_OPPONENT_TYPE])
+        perception.add_chunk_instance_to_group(cl.chunk('metadata'), BattleConcept.BATTLE, [cl.feature('tag', 'gen5ou-456')])
+        perception.add_chunks_to_group([cl.chunk(move.id) for move in moves], BattleConcept.AVAILABLE_MOVES)
         perception.add_chunks_to_group([cl.chunk(type.name) for type in opponent.types if type is not None], BattleConcept.ACTIVE_OPPONENT_TYPE)
 
         perception_factory.map = MagicMock(return_value=perception)

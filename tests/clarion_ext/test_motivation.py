@@ -31,7 +31,7 @@ class TestStickyBoltzmannSelector:
     def given_selection(self, request, monkeypatch):
         selection_goal = request.param[0]
         selection_strength = request.param[1]
-        monkeypatch.setattr(cl.BoltzmannSelector, 'call', lambda _self, inputs: nd.NumDict({selection_goal: selection_strength}, default=0.))
+        monkeypatch.setattr(nd, 'boltzmann', lambda d, t: nd.NumDict({selection_goal: selection_strength}, default=0.))
 
     @pytest.fixture
     def battle_tag(self) -> str:
