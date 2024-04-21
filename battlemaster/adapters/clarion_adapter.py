@@ -43,6 +43,8 @@ class MindAdapter:
         self._stimulus.process.input(perception)
         self._mind.step()
         #self._logger.info(cl.pprint(self._mind[cl.buffer('wm_ms_out')].output))
+        #self._logger.info(cl.pprint(self._mind[cl.subsystem('nacs')][cl.chunks('goal_in')].output))
+        #self._logger.info(cl.pprint(self._mind[cl.subsystem('nacs')][cl.flow_tt('actions_to_pick_from')].output))
 
         return perception.to_stimulus()
 
