@@ -7,7 +7,7 @@ from pyClarion import nd
 from poke_env import gen_data
 
 from .clarion_ext.attention import NamedStimuli, AttentionFilter
-from .clarion_ext.pokemon_efficacy import EffectiveMoves, EffectiveSwitches
+from .clarion_ext.pokemon_efficacy import EffectiveMoves, EffectiveSwitches, DefensiveSwitches
 from .clarion_ext.effort import DecideEffort, Effort, EFFORT_INTERFACE
 from .clarion_ext.working_memory import (
     NACS_OUT_WM_INTERFACE, NacsWmSource,
@@ -240,6 +240,7 @@ def create_agent() -> Tuple[cl.Structure, cl.Construct]:
             cl.Construct(name=cl.chunks("available_switches_in"), process=AttentionFilter(base=cl.MaxNodes(sources=[buffer("stimulus")]), attend_to=[BattleConcept.AVAILABLE_SWITCHES]))
             cl.Construct(name=cl.flow_tt("effective_available_moves"), process=EffectiveMoves(type_source=cl.chunks("opponent_type_in"), move_source=cl.chunks("available_moves_in"), move_chunks=nacs.assets.move_chunks))
             cl.Construct(name=cl.flow_tt("effective_available_switches"), process=EffectiveSwitches(type_source=cl.chunks("opponent_type_in"), switch_source=cl.chunks("available_switches_in"), pokemon_chunks=nacs.assets.pokemon_chunks))
+            cl.Construct(name=cl.flow_tt("defensive_available_switches"), process=DefensiveSwitches(type_source=cl.chunks("opponent_type_in"), switch_source=cl.chunks("available_switches_in"), pokemon_chunks=nacs.assets.pokemon_chunks))
 
             cl.Construct(name=cl.flow_tt("moves_that_forward_goal"),
                          process=ReasoningPath(
@@ -247,9 +248,15 @@ def create_agent() -> Tuple[cl.Structure, cl.Construct]:
                              controllers=[cl.buffer("mcs_effort_gate"), cl.buffer('mcs_goal_gate')],
                              interfaces=[EFFORT_INTERFACE, GOAL_GATE_INTERFACE],
                              pidxs=[Effort.AUTOPILOT.index, GoalType.MOVE.index]))
-            cl.Construct(name=cl.flow_tt("switches_that_forward_goal"),
+            cl.Construct(name=cl.flow_tt("effective_switches_that_forward_goal"),
                          process=ReasoningPath(
                              base=cl.Repeater(source=cl.flow_tt("effective_available_switches")),
+                             controllers=[cl.buffer("mcs_effort_gate"), cl.buffer('mcs_goal_gate')],
+                             interfaces=[EFFORT_INTERFACE, GOAL_GATE_INTERFACE],
+                             pidxs=[Effort.AUTOPILOT.index, GoalType.SWITCH.index]))
+            cl.Construct(name=cl.flow_tt("defensive_switches_that_forward_goal"),
+                         process=ReasoningPath(
+                             base=cl.Repeater(source=cl.flow_tt("defensive_available_switches")),
                              controllers=[cl.buffer("mcs_effort_gate"), cl.buffer('mcs_goal_gate')],
                              interfaces=[EFFORT_INTERFACE, GOAL_GATE_INTERFACE],
                              pidxs=[Effort.AUTOPILOT.index, GoalType.SWITCH.index]))
@@ -261,8 +268,8 @@ def create_agent() -> Tuple[cl.Structure, cl.Construct]:
                              interfaces=[EFFORT_INTERFACE],
                              pidxs=[Effort.TRY_HARD.index]))
 
-            cl.Construct(name=cl.chunks("goal_achieving_effective_actions"), process=cl.MaxNodes(sources=[cl.flow_tt("moves_that_forward_goal"), cl.flow_tt("switches_that_forward_goal"), cl.chunks("generate_and_test")]))
-            cl.Construct(name=cl.flow_tt('actions_to_pick_from'), process=SwitchIfEmpty(primary_sources=[cl.chunks("goal_achieving_effective_actions")], alternative_sources=[cl.flow_tt("effective_available_moves"), cl.flow_tt("effective_available_switches")]))
+            cl.Construct(name=cl.chunks("goal_achieving_effective_actions"), process=cl.MaxNodes(sources=[cl.flow_tt("moves_that_forward_goal"), cl.flow_tt("effective_switches_that_forward_goal"), cl.flow_tt("defensive_switches_that_forward_goal"), cl.chunks("generate_and_test")]))
+            cl.Construct(name=cl.flow_tt('actions_to_pick_from'), process=SwitchIfEmpty(primary_sources=[cl.chunks("goal_achieving_effective_actions")], alternative_sources=[cl.flow_tt("effective_available_moves"), cl.flow_tt("effective_available_switches"), cl.flow_tt("defensive_available_switches")]))
 
             cl.Construct(name=cl.terminus("wm_out"), process=cl.ThresholdSelector(source=cl.flow_tt("actions_to_pick_from"), threshold=0.001))
             cl.Construct(name=cl.terminus('wm_write'), process=cl.Constants(nd.NumDict({feature(('wm', ('w', 0)), NacsWmSource.CANDIDATE_ACTIONS.value): 1.0, feature(("wm", ("r", 0)), "read"): 1.0}, default=0.0)))

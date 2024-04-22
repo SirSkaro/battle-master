@@ -175,6 +175,6 @@ class TestDefensiveSwitches:
 
         result = process.call(inputs)
 
-        assert result[cl.chunk('tropius')] == 1.0 / 3
-        assert result[cl.chunk('bisharp')] == 1.0 / 3
-        assert result[cl.chunk('pidgey')] == 0.5 / 3
+        assert result[cl.chunk('bisharp')] == 8.0 / 16 / 3
+        assert result[cl.chunk('tropius')] == 4.0 / 16 / 3
+        assert result[cl.chunk('pidgey')] == 2.0 / 16 / 3

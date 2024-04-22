@@ -10,6 +10,7 @@ from .numdicts_ext import absolute_normalize, get_feature_value_by_name, get_fea
 
 _EFFECTIVE_THRESHOLD = 0.9
 _MAX_EFFECTIVENESS_MULTIPLIER = 4.0
+_MAX_RESISTANCE_MULTIPLIER = 16.0
 
 
 def _get_efficacy(type_chart, attack_type: str, defending_types: List[str]) -> float:
@@ -92,14 +93,6 @@ class DefensiveSwitches(cl.Process):
         self._pokemon_chunks = pokemon_chunks
         self._type_chart = GenData.from_gen(9).type_chart
         self._logger = logging.getLogger(f"{__name__}")
-        self._reverse_multiplier_map = {
-            0.: 4.,
-            0.25: 4.,
-            0.5: 2.,
-            1.: 1.,
-            2.: 0.5,
-            4.: 0.25
-        }
 
     def call(self, inputs: Mapping[Any, nd.NumDict]) -> nd.NumDict:
         result = nd.MutableNumDict(default=0.0)
@@ -115,9 +108,10 @@ class DefensiveSwitches(cl.Process):
 
             switch_types = [feature.val for feature in get_features_by_name('type', switch, self._pokemon_chunks)]
             for attack_type in attacking_type:
-                damage_multiplier *= _get_efficacy(self._type_chart, attack_type.cid, switch_types)
-            result[switch] = self._reverse_multiplier_map[damage_multiplier]
+                efficacy_multiplier = _get_efficacy(self._type_chart, attack_type.cid, switch_types)
+                damage_multiplier *= 1/efficacy_multiplier if efficacy_multiplier > 0 else _MAX_EFFECTIVENESS_MULTIPLIER
+            result[switch] = damage_multiplier
 
         result = nd.threshold(result, th=1.9, keep_default=True)
-        return absolute_normalize(result, _MAX_EFFECTIVENESS_MULTIPLIER * len(switches))
+        return absolute_normalize(result, _MAX_RESISTANCE_MULTIPLIER * len(switches))
 
