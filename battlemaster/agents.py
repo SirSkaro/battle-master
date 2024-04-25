@@ -21,10 +21,10 @@ class BattleMasterPlayer(Player):
         self.logger.debug(f'I see {perception}')
 
         if chosen_move is not None:
-            self.logger.info(f"I'm choosing {chosen_move}")
+            self.logger.info(f"I'm choosing {chosen_move} | {battle.battle_tag}")
             return self._select_move(battle, chosen_move)
 
-        self.logger.info("I couldn't decide on an action. I'm picking a random action")
+        self.logger.info(f"I couldn't decide on an action. I'm picking a random action | {battle.battle_tag}")
         return self.choose_random_move(battle)
 
     def _select_move(self, battle: Battle, order: str) -> BattleOrder:
@@ -36,7 +36,7 @@ class BattleMasterPlayer(Player):
             switch_to_choose = [pokemon for pokemon in battle.available_switches if pokemon.species == order or pokemon.base_species == order][0]
             return self.create_order(switch_to_choose)
 
-        self.logger.warning(f"Attempted to choose {order}, but it's not one of the available moves or switches. Choosing a random action instead.")
+        self.logger.warning(f"Attempted to choose {order}, but it's not one of the available moves or switches. Choosing a random action instead. | {battle.battle_tag}")
         return self.choose_random_move(battle)
 
     def _is_available_move(self, battle: Battle, order: str) -> bool:
@@ -71,11 +71,14 @@ class MaxDamagePlayer(Player):
 class ExpectiminimaxPlayer(Player):
     def choose_move(self, battle: Battle):
         simulation = BattleSimulationAdapter.from_battle(battle)
-        action = self._simulate_and_pick_safest_move(simulation)
-        if action.startswith(SWITCH_ACTION):
-            return self._select_switch(battle, action)
-
-        return self._select_move(battle, action)
+        try:
+            action = self._simulate_and_pick_safest_move(simulation)
+            if action.startswith(SWITCH_ACTION):
+                return self._select_switch(battle, action)
+            return self._select_move(battle, action)
+        except:
+            self.logger.warning(f'An error occurred during simulation. Choosing a random move.')
+            return self.choose_random_move(battle)
 
     def _simulate_and_pick_safest_move(self, simulation: BattleSimulation) -> str:
         battles = simulation.prepare_battles(join_moves_together=True)
