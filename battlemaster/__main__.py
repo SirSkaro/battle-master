@@ -61,6 +61,7 @@ async def play_ladder(num_games: int, agent: Player = Provide[Container.player])
     logger = logging.getLogger(f"{__name__}")
     logger.info(f"Playing {num_games} games on the ladder as {agent.username}")
     await agent.ladder(num_games)
+    logger.info(f'Agent won {agent.n_won_battles} / {num_games} battles {agent.n_won_battles / num_games}%')
 
 
 if __name__ == "__main__":
